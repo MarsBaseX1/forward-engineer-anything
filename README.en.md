@@ -32,7 +32,7 @@ FEA currently focuses on the Electron release workflow: **audit → sanitized ev
 | :--- | ---: | :--- |
 | **6 → 0** | Synthetic demo findings | Deliberately planted exposures removed in the improved fixture |
 | **5 classes** | FEA001–FEA005 | Source maps, private-key markers, internal config, debug assets, test assets |
-| **52 / 52** | Local automated tests passed | Including bounded ASAR parsing, malformed inputs and explicit fallback behavior |
+| **53 / 53** | Local automated tests passed | Including bounded ASAR parsing, malformed inputs and explicit fallback behavior |
 | **2 inputs** | Resource tree / `.asar` | Currently scoped Electron release-resource forms |
 
 **Reproduce:** `npm test && npm run demo && npm run demo:check`. The chart is generated from `demo/generated/reports/comparison/comparison.json` by [`scripts/render-readme-chart.mjs`](scripts/render-readme-chart.mjs).
