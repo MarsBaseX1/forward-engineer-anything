@@ -22,6 +22,18 @@ AI 辅助逆向（如 [REA](https://github.com/morluto/rea)）正在降低分析
 
 FEA 当前聚焦 Electron：**静态检查 → 出具脱敏证据 → 阻止不合格发布 → 比较改进效果**。无需云模型、API Key 或付费服务即可运行扫描和演示。详细防护策略见 [ANTI-REA-HARDENING.md](docs/ANTI-REA-HARDENING.md)。
 
+## v0.4.3：发布可信性检查（实验性）
+
+FEA 新增**发布文件 SHA-256 清单**、Windows **Authenticode 签名与预期证书指纹核对**、macOS **codesign / Team ID / Gatekeeper / 已装订公证票据检查**。受控 CI 使用未签名样本验证“必须拒绝”，并非使用真实发布证书完成了正向验证。MSI、DMG、PKG 目前仅计算不透明文件摘要，**不解析安装包内部文件**。
+
+```bash
+node src/cli.mjs release manifest ./dist/MyProduct.exe --out ./.fea/manifest.json
+# 在原生 Windows 上，需要指定你实际发布者的证书 SHA-1 指纹：
+node src/cli.mjs release publisher ./dist/MyProduct.exe --platform win32 --thumbprint <40位证书指纹> --out ./.fea/trust.json
+```
+
+详见 [发布可信性验证说明](docs/RELEASE-TRUST.md)，原始品牌图标 `assets/fea-icon.png` 未改动。
+
 ## 可复现的关键数据
 
 <div align="center">
@@ -32,7 +44,7 @@ FEA 当前聚焦 Electron：**静态检查 → 出具脱敏证据 → 阻止不�
 | :--- | ---: | :--- |
 | **11 → 0** | 演示样本的扫描发现数 | 人为植入的暴露项在改进样本中被移除 |
 | **9 类** | FEA001–FEA009 | Source Map、私钥、内部配置、调试资源、测试资源、客户端授权、硬编码密钥、未混淆逻辑、客户端数据暴露 |
-| **77 / 77** | 自动化测试通过 | 包括 ASAR 异常输入、安全边界与跨平台降级的测试 |
+| **79 / 79** | 自动化测试通过 | 包括 ASAR 异常输入、安全边界与跨平台降级的测试 |
 | **2 种** | 目录 / `.asar` | 当前受限支持的 Electron 资源输入形态 |
 
 **数据来源与复现：** `npm test && npm run demo && npm run demo:check`。图表由 [`demo/check.mjs`](demo/check.mjs) 生成的 `comparison.json` 自动绘制，具体规则计数可在运行后的 `demo/generated/reports/comparison/comparison.json` 查看。脚本在 [`scripts/render-readme-chart.mjs`](scripts/render-readme-chart.mjs)。
@@ -201,7 +213,7 @@ Windows 系统还可运行 `node src/cli.mjs signature ./my-app.exe --out ./audi
 - **已交付到客户端的代码仍可能被逆向、修改或重新实现。** ASAR 归档不是保密边界。
 - 扫描通过不等于没有秘密、没有漏洞、授权无法被绕过。客户端判断不能替代服务端授权。
 - 签名检查不等于加密代码；本工具也不会生成合法的 Windows/macOS 签名。
-- 当前不支持任意 EXE / MSI / DMG 分析、自动加壳或真实 AI 逆向能力评分；macOS 签名验证仍在路线图中。Arena v0.3 仅验证外部运行日志和提供脚本化样本。
+- 当前不支持任意 EXE / MSI / DMG 分析、自动加壳或真实 AI 逆向能力评分；macOS 签名与公证状态检查仅是实验性实现，尚未使用真实 Developer ID 证书完成正向 CI 验证。Arena v0.3 仅验证外部运行日志和提供脚本化样本。
 - **当前仍为实验版本**，不代表独立审计或安全认证；真实发布前请核验支持格式和异常边界。
 
 ## 下一步与贡献

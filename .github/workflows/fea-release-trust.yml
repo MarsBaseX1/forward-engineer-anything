@@ -1,0 +1,40 @@
+name: FEA release trust (negative tests)
+on:
+  pull_request:
+    paths:
+      - 'src/release-trust.mjs'
+      - 'src/cli.mjs'
+      - 'test/release-trust.test.mjs'
+      - 'demo/release-trust.mjs'
+      - '.github/workflows/fea-release-trust.yml'
+      - 'package.json'
+  push:
+    branches: [main]
+    paths:
+      - 'src/release-trust.mjs'
+      - 'src/cli.mjs'
+      - 'test/release-trust.test.mjs'
+      - 'demo/release-trust.mjs'
+      - '.github/workflows/fea-release-trust.yml'
+      - 'package.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  trust-negative-tests:
+    name: Unsigned fixture must not pass — ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-15-intel]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test existing APIs and native trust denial paths
+        run: npm test
+      - name: Verify the owned unsigned fixture never passes trust verification
+        run: npm run trust:demo

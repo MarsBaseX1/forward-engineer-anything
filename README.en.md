@@ -22,6 +22,12 @@ AI-assisted analysis (e.g. [REA](https://github.com/morluto/rea)) lowers the bar
 
 FEA currently focuses on the Electron release workflow: **audit → sanitized evidence → CI policy gate → before/after comparison**. The scanner and demo run without a cloud model, paid account, or API key. See [ANTI-REA-HARDENING.md](docs/ANTI-REA-HARDENING.md).
 
+## v0.4.3: Publisher & release provenance (experimental)
+
+The new **bounded SHA-256 release manifest** and **native publisher checks** require an exact Windows Authenticode signer certificate thumbprint or a macOS Team ID, Gatekeeper acceptance, and a stapled notarization ticket. Native CI only tests that an unsigned, owned fixture **cannot pass**; it does not contain real publisher signing credentials. MSI / DMG / PKG can be hashed as **opaque files**, not parsed or certified.
+
+See the [release-trust guide](docs/RELEASE-TRUST.md). The original brand icon `assets/fea-icon.png` is unchanged.
+
 ## Reproducible demo data
 
 <div align="center">
@@ -32,7 +38,7 @@ FEA currently focuses on the Electron release workflow: **audit → sanitized ev
 | :--- | ---: | :--- |
 | **11 → 0** | Synthetic demo findings | Deliberately planted exposures removed in the improved fixture |
 | **9 classes** | FEA001–FEA009 | Source maps, private-key markers, internal config, debug assets, test assets, client auth, hardcoded secrets, unobfuscated logic, client data exposure |
-| **77 / 77** | Automated tests passed | Including bounded ASAR parsing, malformed inputs and explicit fallback behavior |
+| **79 / 79** | Automated tests passed | Including bounded ASAR parsing, malformed inputs and explicit fallback behavior |
 | **2 inputs** | Resource tree / `.asar` | Currently scoped Electron release-resource forms |
 
 **Reproduce:** `npm test && npm run demo && npm run demo:check`. The chart is generated from `demo/generated/reports/comparison/comparison.json` by [`scripts/render-readme-chart.mjs`](scripts/render-readme-chart.mjs).
@@ -189,7 +195,7 @@ This table describes **scope, not security superiority**. No cross-project bench
 - Client-distributed code can still be inspected, modified or reimplemented. **ASAR is not an encryption boundary.**
 - A successful scan does not prove that an app has no secrets or vulnerabilities. Client checks never replace server-side authorization.
 - Authenticity checks are not code encryption or protection against all local modifications.
-- Arbitrary EXE/MSI/DMG unpacking, automated protective code patches, real AI resistance scores and macOS signing checks are **not implemented**. Arena validates external run logs and scripted fixtures only; no live model execution is bundled.
+- Arbitrary EXE/MSI/DMG unpacking, automated protective code patches, real AI resistance scores ; macOS signing/notarization checks are experimental and untested with actual Developer ID credentials. Arena validates external run logs and scripted fixtures only; no live model execution is bundled.
 - **FEA remains experimental**, not an independent security audit or certification. Validate supported artifact formats and failure modes before relying on it for a production gate.
 
 ## Roadmap and contribution
