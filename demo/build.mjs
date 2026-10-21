@@ -24,6 +24,7 @@ for(const kind of ['baseline','hardened']) {
     write(path.join(target,'auth.js'),'function isPremium() { return localStorage.getItem("license") === "valid"; }\n');
     write(path.join(target,'secrets.js'),'const api_key = "sk-syntheticDemoKey1234567890abcdef";\n');
     write(path.join(target,'business.js'),'// TODO: calculatePrice must stay server-side\nfunction getUserPlan() { return "free"; }\n');
+    write(path.join(target,'state.js'),'window.__INITIAL_STATE__ = { user: { id: 1 } };\n');
   }
   packDemoAsar(target,path.join(output,kind,'app.asar'));
 }
