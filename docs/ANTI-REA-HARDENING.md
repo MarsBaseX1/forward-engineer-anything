@@ -6,38 +6,39 @@
 
 参考对象：[morluto/rea](https://github.com/morluto/rea) 及类似通过 MCP 连接逆向工具的 Agent 工作流。
 
-## 1. 资产暴露层（已实现 + 扩展）
+## 1. 资产暴露层（已实现）
 
-- 继续强化 FEA001–FEA005：Source Map、私钥候选、内部配置、调试资源、测试资产。
-- 新增规则：检测未混淆的业务逻辑模块、硬编码字符串、客户端可观察的授权判断、API 端点与密钥派生逻辑。
-- CI 门禁必须覆盖最终产物（解包目录 / ASAR / 安装包提取内容），而不只是源码目录。
+- FEA001–FEA005：Source Map、私钥候选、内部配置、调试资源、测试资产。
+- FEA006：客户端授权/许可判断。
+- FEA007：硬编码密钥/令牌候选。
+- FEA008：未混淆业务逻辑指示。
+- FEA009：客户端敏感数据暴露（`window.__STATE__`、`localStorage` token 等）。
 
-## 2. 构建与交付层（Protect 演进）
+CI 门禁覆盖最终产物（解包目录 / ASAR）。
 
-- Electron Forge / electron-builder 自动化：禁用 Source Map、分离调试资产、强制 ASAR integrity、启用 Electron Fuses（RunAsNode=false、EnableNodeCliInspectArguments=false 等）。
-- 引入可选混淆适配器（javascript-obfuscator、bytenode、或编译到 WASM/Native 模块），但必须提供回滚与性能回归测试。
-- 代码分割：将核心算法、许可证校验、敏感业务规则从客户端迁移到服务端；客户端仅保留演示与缓存。
-- 动态加载与延迟解密：关键模块在运行时从受信源获取，并与设备/用户绑定。
+## 2. 构建与交付层（部分实现）
 
-## 3. 运行时与信任边界层
+- Electron Forge JSON 自动化：`packagerConfig.asar = true` + 推荐完整性 Fuses（`EnableEmbeddedAsarIntegrityValidation`、`OnlyLoadAppFromAsar`）。见 [PROTECT-AUTOMATION.md](PROTECT-AUTOMATION.md)。
+- 可选混淆建议生成器（`fea obfuscate`）。
+- 服务端迁移建议生成器（`fea migrate`）。
 
-- 服务端授权为唯一权威：所有敏感操作必须经服务端校验与额度控制（已有授权示例，需产品化）。
+## 3. 运行时与信任边界层（建议已提供）
+
+- 服务端授权为唯一权威：已有授权示例与迁移建议。
 - 客户端仅做演示性判断；真实状态与许可证由服务端持有。
-- 引入设备指纹、运行时环境检测（可选、非强制），但明确标注兼容性代价。
-- 签名与公证：完善 Windows Authenticode 与 macOS codesign/公证检查，并验证最终产物完整性。
+- 签名与公证：Windows Authenticode 状态检查已实现；macOS 仍在路线图。
 
-## 4. 对抗评测层（Arena 演进）
+## 4. 对抗评测层（骨架已提供）
 
-- 支持接入真实 REA / Ghidra / Hopper 适配器（需用户合法安装并显式授权）。
-- 任务示例：提取关键字符串、重建一个可观察业务功能、绕过客户端授权判断、定位敏感配置。
-- 固定模型、工具版本、预算与种子，公开成功率、耗时、成本对比（基线 vs 加固）。
-- 明确声明：成功率下降不等于无法逆向；只证明在该任务、该预算下的成本变化。
+- Arena 支持可信任本地适配器。`demo/rea-observer.mjs` 提供只读观察骨架。
+- 见 [REA-ADAPTER.md](REA-ADAPTER.md) 了解如何替换为真实 REA 适配器。
+- 明确声明：成功率下降不等于无法逆向。
 
-## 5. 优先级与下一步实现
+## 5. 优先级与实现状态
 
-1. **短期**：扩展 Audit 规则覆盖未混淆逻辑与硬编码敏感信息；完善 Forge ASAR integrity 与 Fuse 自动化。
-2. **中期**：可选混淆适配器 + 服务端迁移建议生成器；真实 REA 适配器接入 Arena。
-3. **长期**：原生（PE / Mach-O / .NET）适配器、运行时防护插件接口、可复现的公开对抗基准。
+1. **短期**（已完成）：扩展 Audit 规则（FEA006–FEA009）；完善 Forge ASAR + 完整性 Fuses 自动化。
+2. **中期**（已完成骨架）：可选混淆建议 + 服务端迁移建议生成器；REA 风格适配器对接文档与骨架。
+3. **长期**（路线图）：原生（PE / Mach-O / .NET）适配器、运行时防护插件接口、可复现的公开对抗基准。
 
 ## 边界与声明
 
