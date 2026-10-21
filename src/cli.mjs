@@ -6,6 +6,7 @@ import {planForge} from './protect.mjs';
 import {verifyAuthenticode} from './signature.mjs';
 import {loadArenaJson,compareArena,arenaMarkdown} from './arena.mjs';
 import {importExternalFiles} from './arena-import.mjs';
+import {runPairedArena} from './arena-runner.mjs';
 import {DEFAULT_CONFIG,VERSION,readConfig,scanDirectory,verifyReport,compareReports,comparisonMarkdown,writeJson} from './core.mjs';
 
 const help=`FEA ${VERSION} — Electron release-resource security checks (experimental)
@@ -19,6 +20,7 @@ Usage:
   fea signature <file.exe> --out <report-dir> [--thumbprint SHA1HEX]
   fea arena compare <baseline-run.json> <hardened-run.json> --suite <suite.json> --out <report-dir>
   fea arena import <trials.jsonl> --suite <suite.json> --descriptor <descriptor.json> --out <run.json>
+  fea arena execute --suite <suite.json> --baseline <app.asar> --hardened <app.asar> --adapter <trusted.mjs> --engine <engine.json> --out <dir> --i-own-artifacts
 Exit codes: 0 success, 2 policy/coverage failure, 1 invalid input or error.
 IMPORTANT: scans are bounded and format-specific, not installer extraction or proof of security.
 `;
@@ -28,8 +30,8 @@ function parse(argv) {
     const arg=argv[i];
     if(arg.startsWith('--')) {
       const name=arg.slice(2);
-      if(!['out','config','policy','profile','thumbprint','suite','descriptor','help'].includes(name) || Object.hasOwn(flags,name))throw Error('Invalid flag: '+arg);
-      if(name==='help'){flags.help=true;continue;}
+      if(!['out','config','policy','profile','thumbprint','suite','descriptor','baseline','hardened','adapter','engine','i-own-artifacts','help'].includes(name) || Object.hasOwn(flags,name))throw Error('Invalid flag: '+arg);
+      if(name==='help'||name==='i-own-artifacts'){flags[name]=true;continue;}
       if(!argv[i+1] || argv[i+1].startsWith('--')) throw Error('Missing value for '+arg);
       flags[name]=argv[++i];
     } else positional.push(arg);
@@ -86,6 +88,18 @@ export function run(args) {
       return report.valid?0:2;
     }
     case 'arena': {
+      if(positional[0]==='execute'){
+        if(positional.length!==1 || !flags.suite || !flags.baseline || !flags.hardened || !flags.adapter || !flags.engine || !flags.out || !flags['i-own-artifacts'])
+          throw Error('arena execute requires --suite, --baseline, --hardened, --adapter, --engine, --out and --i-own-artifacts');
+        const result=runPairedArena({suite:loadArenaJson(flags.suite),baselineFile:flags.baseline,
+          hardenedFile:flags.hardened,adapterFile:flags.adapter,engine:loadArenaJson(flags.engine),acknowledgeExecution:true});
+        writeJson(path.join(flags.out,'baseline.json'),result.baseline);
+        writeJson(path.join(flags.out,'hardened.json'),result.hardened);
+        writeJson(path.join(flags.out,'comparison.json'),result.comparison);
+        fs.writeFileSync(path.join(flags.out,'comparison.md'),arenaMarkdown(result.comparison));
+        console.log('Executed trusted local adapter: outcomes self-reported; not proof of AI reverse-engineering resistance.');
+        return 0;
+      }
       if(positional[0]==='import'){
         if(positional.length!==2 || !flags.suite || !flags.descriptor || !flags.out)throw Error('arena import requires <trials.jsonl> --suite --descriptor --out');
         const run=importExternalFiles({trialsFile:positional[1],suiteFile:flags.suite,descriptorFile:flags.descriptor});
