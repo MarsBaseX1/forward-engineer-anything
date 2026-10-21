@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
-export const VERSION = '0.1.0-alpha.1';
+export const VERSION = '0.2.0-alpha.1';
 export const RULES = Object.freeze({
   FEA001: {title:'Source map shipped', severity:'high'},
   FEA002: {title:'Potential private key in release', severity:'critical'},
@@ -26,6 +26,30 @@ const internalName = /(?:^\.env(?:\..+)?$|(?:^|[._-])internal(?:[._-]|$)|(?:^|[.
 const internalText = /\b(?:INTERNAL_(?:API|URL|TOKEN|SECRET)|PRIVATE_API_(?:KEY|URL)|SERVER_SECRET)\b/i;
 const debugName = /(?:\.pdb|\.ilk|\.dSYM(?:\/|$)|\.debug)$/i;
 const devAsset = /(?:^|\/)(?:__tests__|__mocks__|tests?|fixtures|e2e)(?:\/|$)|\.(?:spec|test)\.[cm]?[jt]sx?$/i;
+
+// Shared file rule engine for resource directories and bounded ASAR entries.
+// This never executes source code or returns raw candidate-secret content.
+export function inspectAsset(relative, bytes) {
+  const found = new Set();
+  const base = relative.split('/').at(-1);
+  if (sourcemap.test(base)) found.add('FEA001');
+  if (debugName.test(relative)) found.add('FEA004');
+  if (devAsset.test(relative)) found.add('FEA005');
+  if (internalName.test(base)) found.add('FEA003');
+  let textInspected = false;
+  let opaqueText = false;
+  if (textSuffix.test(base) || base.startsWith('.env')) {
+    textInspected = true;
+    if (bytes.includes(0)) opaqueText = true;
+    else {
+      const content = bytes.toString('utf8');
+      if (keyMarker.test(content)) found.add('FEA002');
+      if (!internalName.test(base) && internalText.test(content)) found.add('FEA003');
+      if (/\bsourceMappingURL\s*=/.test(content) && !sourcemap.test(base)) found.add('FEA001');
+    }
+  }
+  return {ruleIds:[...found], textInspected, opaqueText};
+}
 
 export function validateConfig(config) {
   if (!config || config.schemaVersion !== 1 || config.profile !== 'electron-resources' ||
@@ -87,19 +111,10 @@ export function scanDirectory(rootInput, config, options={}) {
       try {after=fs.lstatSync(file);}catch {issue('READ_ERROR');return;}
       if (!after.isFile() || after.size!==stat.size || after.mtimeMs!==stat.mtimeMs || bytes.length!==stat.size) {issue('INPUT_CHANGED');return;}
       entries.push(hash(relative)+':'+hash(bytes));
-      const base=path.basename(file);
-      if (sourcemap.test(base)) add('FEA001',relative);
-      if (debugName.test(relative)) add('FEA004',relative);
-      if (devAsset.test(relative)) add('FEA005',relative);
-      if (internalName.test(base)) add('FEA003',relative);
-      if (textSuffix.test(base) || base.startsWith('.env')) {
-        inspectedTextFiles++;
-        if (bytes.includes(0)) {opaqueFiles++;issue('OPAQUE_TEXT');return;}
-        const content=bytes.toString('utf8');
-        if (keyMarker.test(content)) add('FEA002',relative);
-        if (!internalName.test(base) && internalText.test(content)) add('FEA003',relative);
-        if (/\bsourceMappingURL\s*=/.test(content) && !sourcemap.test(base)) add('FEA001',relative);
-      }
+      const assessment = inspectAsset(relative,bytes);
+      if (assessment.textInspected) inspectedTextFiles++;
+      if (assessment.opaqueText) {opaqueFiles++;issue('OPAQUE_TEXT');return;}
+      for(const ruleId of assessment.ruleIds) add(ruleId,relative);
       if (Date.now()-since>config.limits.maxDurationMs) {issue('TIME_LIMIT');return;}
     }
   }

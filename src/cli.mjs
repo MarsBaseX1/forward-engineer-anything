@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import {scanAsar} from './asar.mjs';
+import {planForge} from './protect.mjs';
+import {verifyAuthenticode} from './signature.mjs';
 import {DEFAULT_CONFIG,VERSION,readConfig,scanDirectory,verifyReport,compareReports,comparisonMarkdown,writeJson} from './core.mjs';
 
 const help=`FEA ${VERSION} — Electron release-resource security checks (experimental)
@@ -9,8 +12,11 @@ Usage:
   fea scan <resources-dir> --config .fea.json --out <report-dir>
   fea verify <report.json> --policy .fea.json
   fea compare <before.json> <after.json> --out <comparison-dir>
+  fea asar-scan <app.asar> --config .fea.json --out <report-dir>
+  fea plan <electron-forge-project> --out <plan-dir>
+  fea signature <file.exe> --out <report-dir> [--thumbprint SHA1HEX]
 Exit codes: 0 success, 2 policy/coverage failure, 1 invalid input or error.
-IMPORTANT: v0.1 scans extracted/prepackage RESOURCE DIRECTORIES, not raw ASAR or installers.
+IMPORTANT: scans are bounded and format-specific, not installer extraction or proof of security.
 `;
 function parse(argv) {
   const positional=[], flags={};
@@ -18,7 +24,7 @@ function parse(argv) {
     const arg=argv[i];
     if(arg.startsWith('--')) {
       const name=arg.slice(2);
-      if(!['out','config','policy','profile','help'].includes(name) || Object.hasOwn(flags,name))throw Error('Invalid flag: '+arg);
+      if(!['out','config','policy','profile','thumbprint','help'].includes(name) || Object.hasOwn(flags,name))throw Error('Invalid flag: '+arg);
       if(name==='help'){flags.help=true;continue;}
       if(!argv[i+1] || argv[i+1].startsWith('--')) throw Error('Missing value for '+arg);
       flags[name]=argv[++i];
@@ -51,6 +57,29 @@ export function run(args) {
       fs.writeFileSync(path.join(flags.out,'summary.txt'),reportSummary(report));
       console.log(reportSummary(report));
       return report.coverage.complete?0:2;
+    }
+    case 'asar-scan': {
+      if (positional.length!==1 || !flags.out) throw Error('asar-scan requires <app.asar> --out');
+      const config = readConfig(flags.config || '.fea.json');
+      const report = scanAsar(positional[0],config,{out:flags.out});
+      writeJson(path.join(flags.out,'report.json'),report);
+      fs.writeFileSync(path.join(flags.out,'summary.txt'),reportSummary(report));
+      console.log(reportSummary(report));
+      return report.coverage.complete?0:2;
+    }
+    case 'plan': {
+      if(positional.length!==1 || !flags.out) throw Error('plan requires <project-dir> --out');
+      const plan=planForge(positional[0]);
+      writeJson(path.join(flags.out,'plan.json'),plan);
+      console.log('Wrote review-only plan: '+path.join(flags.out,'plan.json'));
+      return plan.supported?0:2;
+    }
+    case 'signature': {
+      if(positional.length!==1 || !flags.out) throw Error('signature requires <file.exe> --out');
+      const report=verifyAuthenticode(positional[0],{expectedThumbprint:flags.thumbprint});
+      writeJson(path.join(flags.out,'signature.json'),report);
+      console.log('Authenticode: '+report.status+'; '+report.notice);
+      return report.valid?0:2;
     }
     case 'verify': {
       if(positional.length!==1)throw Error('verify requires a report.json');

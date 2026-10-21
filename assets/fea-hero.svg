@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="370" viewBox="0 0 1200 370" role="img" aria-labelledby="t d">
+<title id="t">Forward Engineer Anything — release security evidence for desktop apps</title>
+<desc id="d">Deep navy brand banner with a mint shield, release pipeline and the words Ship less. Prove more.</desc>
+<defs>
+ <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#081c27"/><stop offset="1" stop-color="#103942"/></linearGradient>
+ <linearGradient id="green" x2="1"><stop stop-color="#8cf7df"/><stop offset="1" stop-color="#39c6ad"/></linearGradient>
+ <pattern id="grid" width="38" height="38" patternUnits="userSpaceOnUse"><path d="M 38 0 L 0 0 0 38" fill="none" stroke="#4db7a1" stroke-opacity=".10" stroke-width="1"/></pattern>
+</defs>
+<rect width="1200" height="370" rx="24" fill="url(#bg)"/>
+<rect width="1200" height="370" rx="24" fill="url(#grid)"/>
+<circle cx="1023" cy="182" r="190" fill="none" stroke="#62ecd0" opacity=".11" stroke-width="2"/>
+<circle cx="1023" cy="182" r="138" fill="none" stroke="#62ecd0" opacity=".13" stroke-width="2"/>
+<circle cx="1023" cy="182" r="86" fill="none" stroke="#62ecd0" opacity=".16" stroke-width="2"/>
+<path d="M1016 91L1090 118V178C1090 227 1060 256 1016 274C971 257 942 227 942 178V118Z" fill="#1f665f" stroke="#81f2d7" stroke-width="4"/>
+<path d="M985 185L1006 206 1054 158" stroke="#a7ffed" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<g font-family="Arial, Helvetica, sans-serif">
+<text x="78" y="84" font-size="17" font-weight="700" fill="#76e9d0" letter-spacing="4">FEA  /  OPEN-SOURCE RELEASE SECURITY</text>
+<text x="76" y="146" font-size="49" font-weight="800" fill="#f0fbfc">Forward Engineer Anything</text>
+<text x="79" y="205" font-size="33" font-weight="700" fill="url(#green)">Ship less. Prove more.</text>
+<text x="79" y="250" font-size="19" fill="#b6ced2">Audit Electron releases. Reduce avoidable exposure.</text>
+<text x="79" y="283" font-size="19" fill="#b6ced2">Verify the evidence before you ship.</text>
+<rect x="78" y="306" width="183" height="38" rx="19" fill="#1c4947" stroke="#62e4c7" stroke-opacity=".5"/>
+<text x="101" y="331" font-size="14" fill="#c4f5ea" font-weight="700">EXPERIMENTAL v0.2</text>
+<rect x="277" y="306" width="148" height="38" rx="19" fill="#203b48" stroke="#759fac" stroke-opacity=".5"/>
+<text x="298" y="331" font-size="14" fill="#d5e7e8" font-weight="700">WINDOWS / macOS</text>
+</g>
+</svg>

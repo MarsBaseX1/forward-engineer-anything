@@ -8,7 +8,11 @@ permissions:
   contents: read
 jobs:
   scan-and-compare:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -17,15 +21,20 @@ jobs:
           node-version: '22'
       - name: Run unit and integration tests
         run: npm test
-      - name: Generate reproducible Electron release-resource builds
+      - name: Generate reproducible Electron demo artifacts
         run: npm run demo
-      - name: Scan both builds, verify policy gates, and generate comparison
+      - name: Check resource trees and ASAR builds
         run: npm run demo:check
+      - name: Verify README data chart was generated from current demo
+        shell: bash
+        run: |
+          node scripts/render-readme-chart.mjs
+          git diff --exit-code -- assets/fea-demo-exposure.svg
       - name: Publish sanitized reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: fea-demo-reports
+          name: fea-demo-reports-${{ matrix.os }}
           path: demo/generated/reports/
           if-no-files-found: ignore
           retention-days: 7
