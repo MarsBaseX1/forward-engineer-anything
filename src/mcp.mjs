@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import readline from 'node:readline';
 import {fileURLToPath} from 'node:url';
-import {readConfig, verifyReport, RULES} from './core.mjs';
+import {readConfig, verifyReport, RULES, VERSION} from './core.mjs';
 
 // MCP only serves a precomputed report selected by the operator at startup.
 // There is deliberately no tool to open arbitrary paths, execute code, or update data.
@@ -47,7 +47,7 @@ export function createMcpHandler({reportFile,policyFile}){
       if(!msg.params || typeof msg.params.protocolVersion!=='string')return err(id,-32602,'Invalid initialize parameters');
       if(!['2025-11-25','2025-06-18'].includes(msg.params.protocolVersion))return err(id,-32602,'Unsupported MCP protocol version');
       initialized=true;
-      return success(id,{protocolVersion:msg.params.protocolVersion,capabilities:{tools:{}},serverInfo:{name:'fea-audit-readonly',version:'0.3.2-alpha.1'},instructions:'Only reads an operator-selected FEA report. Sanitized findings are not proof of security.'});
+      return success(id,{protocolVersion:msg.params.protocolVersion,capabilities:{tools:{}},serverInfo:{name:'fea-audit-readonly',version:VERSION},instructions:'Only reads an operator-selected FEA report. Sanitized findings are not proof of security.'});
     }
     if(msg.method==='ping')return success(id,{});
     if(!initialized || !ready)return err(id,-32000,'MCP initialization required');
