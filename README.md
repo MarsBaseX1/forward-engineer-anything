@@ -9,10 +9,13 @@
   [![CI](https://github.com/MarsBaseX1/forward-engineer-anything/actions/workflows/fea-security.yml/badge.svg)](https://github.com/MarsBaseX1/forward-engineer-anything/actions/workflows/fea-security.yml)
   [![License](https://img.shields.io/badge/license-Apache--2.0-2dbfa4)](LICENSE)
   ![Node](https://img.shields.io/badge/Node.js-%E2%89%A5%2020-294754)
-  ![Stage](https://img.shields.io/badge/stage-experimental-667b90)
+  ![Stage](https://img.shields.io/badge/stage-release--candidate-2d8f86)
 
   **[English](README.en.md) · [5 分钟上手](#快速开始) · [真实演示数据](#可复现的关键数据) · [安全边界](#我们不承诺什么) · [参与贡献](CONTRIBUTING.md)**
 </div>
+
+> **v0.4.5 发布工程化：** FEA 正在从功能试验转向正式交付验收。现可构建限定文件清单的 CLI 安装包，并通过离线安装、命令行扫描及策略验证。运行 `npm test && npm run distribution:smoke`，详见 [正式发布验收清单](docs/PRODUCTION-READINESS.md)。**尚未发布 v1.0.0，也不能将未完成的安装包解析、真实商业证书验证或 AI 逆向测试标为通过。**
+
 
 > **FEA（Forward Engineer Anything）** 是面向桌面软件开发者的开源**保护工程框架**。它帮助团队在交付 Windows / macOS 应用前，发现不必要的敏感资源暴露、建立可重复的 CI 门禁、规划加固并验证效果。**目标是提高 REA 类 AI 辅助逆向与篡改的成本，不是承诺软件无法逆向。**
 
@@ -44,7 +47,7 @@ node src/cli.mjs release publisher ./dist/MyProduct.exe --platform win32 --thumb
 | :--- | ---: | :--- |
 | **11 → 0** | 演示样本的扫描发现数 | 人为植入的暴露项在改进样本中被移除 |
 | **9 类** | FEA001–FEA009 | Source Map、私钥、内部配置、调试资源、测试资源、客户端授权、硬编码密钥、未混淆逻辑、客户端数据暴露 |
-| **79 / 79** | 自动化测试通过 | 包括 ASAR 异常输入、安全边界与跨平台降级的测试 |
+| **CI 自动验证** | 自动化测试通过 | 包括 ASAR 异常输入、安全边界与跨平台降级的测试 |
 | **2 种** | 目录 / `.asar` | 当前受限支持的 Electron 资源输入形态 |
 
 **数据来源与复现：** `npm test && npm run demo && npm run demo:check`。图表由 [`demo/check.mjs`](demo/check.mjs) 生成的 `comparison.json` 自动绘制，具体规则计数可在运行后的 `demo/generated/reports/comparison/comparison.json` 查看。脚本在 [`scripts/render-readme-chart.mjs`](scripts/render-readme-chart.mjs)。
