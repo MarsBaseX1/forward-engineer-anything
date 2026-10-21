@@ -32,7 +32,7 @@ FEA 当前聚焦 Electron：**静态检查 → 出具脱敏证据 → 阻止不�
 | :--- | ---: | :--- |
 | **6 → 0** | 演示样本的扫描发现数 | 人为植入的暴露项在改进样本中被移除 |
 | **5 类** | FEA001–FEA005 | Source Map、私钥格式标记、内部配置、调试资源、测试资源 |
-| **28 / 28** | 本地自动化测试通过 | 包括 ASAR 异常输入、安全边界与跨平台降级的测试 |
+| **33 / 33** | 本地自动化测试通过 | 包括 ASAR 异常输入、安全边界与跨平台降级的测试 |
 | **2 种** | 目录 / `.asar` | 当前受限支持的 Electron 资源输入形态 |
 
 **数据来源与复现：** `npm test && npm run demo && npm run demo:check`。图表由 [`demo/check.mjs`](demo/check.mjs) 生成的 `comparison.json` 自动绘制，具体规则计数可在运行后的 `demo/generated/reports/comparison/comparison.json` 查看。脚本在 [`scripts/render-readme-chart.mjs`](scripts/render-readme-chart.mjs)。
@@ -75,18 +75,30 @@ node src/cli.mjs arena compare demo/generated/reports/arena/baseline.json demo/g
 
 [评测协议与限制](docs/ARENA.md)。原始品牌图标依旧使用 `assets/fea-icon.png`，保持原样。
 
-## v0.3.1：只读 MCP、授权参考与 Agent 日志接入
+## v0.3.1：只读 MCP、服务端授权与外部评测证据
 
-新增三种只读 MCP 工具，供 Agent 查看开发者预先选择的脱敏审计报告，不允许读取任意文件或执行目标程序。服务端授权参考项目独立校验租户、资源、操作、过期、撤销和额度。Arena 可导入外部 Agent 自行记录的 JSONL 试验日志与证据摘要，供相同种子/预算的配对比较。
+新增 **stdio MCP 服务**：只公开三种只读工具，读取启动时由开发者指定的脱敏扫描报告，不允许 Agent 通过工具读取任意路径、执行目标程序或修改资源。独立的本地授权示例演示**账户、租户、资源、操作、有效期、撤销、额度**均由服务端决定，不信任客户端自称的会员状态。
 
 ```bash
 npm test
 npm run demo && npm run demo:check
-npm run mcp:demo && npm run auth:demo && npm run arena:import-demo
+npm run mcp:demo && npm run auth:demo
+npm run arena:import-demo
 node src/mcp.mjs --report demo/generated/reports/hardened/report.json --policy .fea.json
 ```
 
-**重要边界：** 随仓库提供的导入样本是脚本化合成数据，不曾运行真实 AI 逆向分析。外部日志未经独立验证。参见 [MCP](docs/MCP.md)、[授权示例](docs/AUTHORIZATION.md)、[Agent 接口](docs/AGENT-ADAPTER.md)。原始图标 `assets/fea-icon.png` 保持不变。
+`arena import` 可接收已获授权、由外部 Agent 生成的 **JSONL 任务日志与 SHA-256 证据摘要**，剔除原始轨迹，再用于已有配对评测。**随仓库提供的导入演示仍是合成数据，没有运行真实 AI 逆向任务**；外部日志不自动等于可靠事实。详见 [MCP 文档](docs/MCP.md)、[服务端授权](docs/AUTHORIZATION.md)、[Agent 接口](docs/AGENT-ADAPTER.md)。
+
+## v0.3.2：可执行的配对 Arena 实验（实验性）
+
+新增 `arena execute`：只运行**由操作者明确指定并信任的本地 Node.js `.mjs` 适配器**，以相同任务、种子和预算逐次测试自有或授权的基线 / 加固构建；默认最多 400 次试验、每次最长 60 秒，且必须显式确认授权。结果包含任务状态、耗时、适配器自报成本和 SHA-256 证据摘要；比较报告不记录原始输出或凭据。
+
+```bash
+npm run demo && npm run arena:execute-demo
+node src/cli.mjs arena execute --suite demo/arena-suite.json --baseline demo/generated/baseline/app.asar --hardened demo/generated/hardened/app.asar --adapter demo/trusted-observer.mjs --engine demo/arena-executor-engine.json --out demo/generated/reports/arena-execution --i-own-artifacts
+```
+
+**边界：** 内置适配器只观察自有合成资源，**没有调用 AI 模型**。执行器不是沙箱，不能信任陌生脚本；远程模型用量由适配器自报，FEA 无法独立核实费用和攻击成功条件。需要真实 Agent 评测时应提供独立审核的适配器、合法测试目标、隔离环境及受控预算。详见 [执行器文档](docs/ARENA-EXECUTOR.md)。
 
 ## 快速开始
 

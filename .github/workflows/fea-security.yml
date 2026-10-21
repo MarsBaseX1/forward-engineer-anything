@@ -33,6 +33,8 @@ jobs:
           npm run auth:demo
       - name: Verify external JSONL import contract (synthetic fixture only)
         run: npm run arena:import-demo
+      - name: Execute bounded paired Arena through trusted synthetic adapter (not AI)
+        run: npm run arena:execute-demo
       - name: Verify README data chart was generated from current demo
         shell: bash
         run: |

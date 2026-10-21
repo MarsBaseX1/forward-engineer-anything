@@ -32,7 +32,7 @@ FEA currently focuses on the Electron release workflow: **audit → sanitized ev
 | :--- | ---: | :--- |
 | **6 → 0** | Synthetic demo findings | Deliberately planted exposures removed in the improved fixture |
 | **5 classes** | FEA001–FEA005 | Source maps, private-key markers, internal config, debug assets, test assets |
-| **28 / 28** | Local automated tests passed | Including bounded ASAR parsing, malformed inputs and explicit fallback behavior |
+| **33 / 33** | Local automated tests passed | Including bounded ASAR parsing, malformed inputs and explicit fallback behavior |
 | **2 inputs** | Resource tree / `.asar` | Currently scoped Electron release-resource forms |
 
 **Reproduce:** `npm test && npm run demo && npm run demo:check`. The chart is generated from `demo/generated/reports/comparison/comparison.json` by [`scripts/render-readme-chart.mjs`](scripts/render-readme-chart.mjs).
@@ -75,18 +75,30 @@ node src/cli.mjs arena compare demo/generated/reports/arena/baseline.json demo/g
 
 [Evaluation protocol and limits](docs/ARENA.md). The original brand mark remains unchanged at `assets/fea-icon.png`.
 
-## v0.3.1: Read-only MCP, authorization reference, and agent-log import
+## v0.3.1 — Read-only MCP, authorization reference and external evidence import
 
-The local stdio MCP server exposes three **read-only** tools over an operator-selected sanitized report, never arbitrary filesystem paths or execution. A separate loopback-only reference service demonstrates server-side tenant/resource/action/expiry/revocation/quota authorization. Arena accepts external agents' JSONL trial logs and evidence digests for comparable paired-run reports.
+FEA now includes a **local stdio MCP server** with three read-only tools over a precomputed, operator-selected audit report. The server will not execute targets or accept arbitrary paths from agent calls. A separate loopback-only authorization reference service demonstrates **tenant / resource / operation / expiry / revocation / quota** checks with server-held opaque tokens.
 
 ```bash
 npm test
 npm run demo && npm run demo:check
-npm run mcp:demo && npm run auth:demo && npm run arena:import-demo
+npm run mcp:demo && npm run auth:demo
+npm run arena:import-demo
 node src/mcp.mjs --report demo/generated/reports/hardened/report.json --policy .fea.json
 ```
 
-**Evidence boundary:** the included import fixture is scripted synthetic input; no real AI reverse-engineering attempts have been executed. External logs are not independently authenticated. Read the [MCP guide](docs/MCP.md), [authorization reference](docs/AUTHORIZATION.md), and [agent adapter](docs/AGENT-ADAPTER.md). Original `assets/fea-icon.png` remains untouched.
+**Authorized external-agent adapter contract:** `arena import` accepts JSONL trials with evidence SHA-256 digests and a pinned external-engine descriptor, strips raw traces, and feeds the existing paired comparator. The example runs **only synthetic import fixtures**; real AI agent runs must be performed separately by the developer on owned/authorized targets. Self-reported logs are **not independently authenticated**. See [MCP](docs/MCP.md), [authorization](docs/AUTHORIZATION.md), and [agent adapter](docs/AGENT-ADAPTER.md).
+
+## v0.3.2: Executable paired Arena trials (experimental)
+
+`arena execute` invokes **only a locally selected trusted Node `.mjs` adapter** against two owned/authorized artifacts with matched tasks, seeds and budgets. It requires explicit acknowledgment, caps trial count and wall time, records outcome/duration/self-reported cost and evidence SHA-256, and excludes raw adapter output from the public comparison.
+
+```bash
+npm run demo && npm run arena:execute-demo
+node src/cli.mjs arena execute --suite demo/arena-suite.json --baseline demo/generated/baseline/app.asar --hardened demo/generated/hardened/app.asar --adapter demo/trusted-observer.mjs --engine demo/arena-executor-engine.json --out demo/generated/reports/arena-execution --i-own-artifacts
+```
+
+**Limits:** the bundled adapter is a **scripted synthetic fixture, not an AI reverse-engineering experiment**. This is **not a sandbox**: never execute untrusted adapters. Reported remote model costs/outcomes are not independently verifiable by FEA. Real Agent studies require explicitly authorized targets, separate review of the adapter and success criteria, and an isolated environment. See [runner guide](docs/ARENA-EXECUTOR.md).
 
 ## Quick start
 
@@ -134,7 +146,7 @@ This table describes **scope, not security superiority**. No cross-project bench
 - Client-distributed code can still be inspected, modified or reimplemented. **ASAR is not an encryption boundary.**
 - A successful scan does not prove that an app has no secrets or vulnerabilities. Client checks never replace server-side authorization.
 - Authenticity checks are not code encryption or protection against all local modifications.
-- Arbitrary EXE/MSI/DMG unpacking, automated protective code patches, real AI resistance scores and macOS signing checks are **not implemented**. Arena v0.3 evaluates external run logs and scripted fixtures only.
+- Arbitrary EXE/MSI/DMG unpacking, automated protective code patches, real AI resistance scores and macOS signing checks are **not implemented**. Arena validates external run logs and scripted fixtures only; no live model execution is bundled.
 - **v0.2 is experimental**, not an independent security audit or certification. Validate supported artifact formats and failure modes before relying on it for a production gate.
 
 ## Roadmap and contribution

@@ -9,3 +9,7 @@ Use `node src/cli.mjs arena compare before.json after.json --suite suite.json --
 Schema: suite `{formatVersion:1,suiteId,authorization:"owned-or-authorized",tasks:[{id}],minTrials:10,budget:{maxDurationMs,maxCostUsd}}`; baseline and hardened runs `{formatVersion:1,suiteId,variant,artifactDigest:<sha256>,engine:{kind:"external"|"synthetic",id,version,model,environment},trials:[{taskId,seed,status:"success"|"failure"|"timeout"|"infrastructure-error",durationMs,costUsd}]}`. Unique `(taskId, seed)` required, each side has ≥10 valid attempts, and both sides require exactly matched seeds, engine identity and budget.
 
 Results separate failures, budget-censored timeouts and infrastructure errors. The summary reports median success duration and median valid attempt cost; no model calls are bundled, no proof of software invulnerability is implied. No raw prompts, private keys or target file contents are emitted. Artifacts and evaluation evidence should be stored in access-controlled CI logs. For actual AI benchmarks, preserve runner version, permitted task definitions, input hashes, seed independence, wall time and usage records, and keep reserved tasks for validation.
+
+## v0.3.2 executable adapter
+
+`arena execute` runs a locally selected, operator-trusted `.mjs` adapter with explicit owned/authorized-target acknowledgment, bounded paired trials and sanitized summary output. It does not sandbox or authenticate the adapter. See [ARENA-EXECUTOR.md](ARENA-EXECUTOR.md). The bundled observation demo is synthetic and is not a real AI attack benchmark.

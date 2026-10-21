@@ -1,10 +1,14 @@
+# FEA v0.3.2 bounded local trial execution
+
+`npm run arena:execute-demo` runs a locally selected and trusted Node adapter against two synthetic owned ASAR files in paired experiments. See [Arena executor](docs/ARENA-EXECUTOR.md). 33 automated tests cover the current functionality. This fixture does **not** call an AI model or measure real reverse engineering. It is not an execution sandbox, and model cost/success claims supplied by an adapter are self-reported.
+
 # FEA v0.3.1 experimental integrations
 
-Run `node src/mcp.mjs --report <trusted-report.json> --policy <trusted-config.json>` to expose three bounded read-only MCP tools. The local MCP server cannot choose files via tool arguments, execute a target, or write to disk.
+The source-only MCP server `node src/mcp.mjs --report <trusted-report> --policy <trusted-config>` provides only sanitized audit summary, findings and policy status. There is no arbitrary file read, shell execution, target code import, HTTP listener, model call, or write tool. The spec-protocol subset supports MCP stdio initialization and `tools/list` / `tools/call`. The external model/client is managed independently: MCP running locally **does not** make a remote model private.
 
-`npm run auth:demo` demonstrates server-scoped, revocable, expiring, quota-limited opaque bearer credentials on localhost; this reference is **not production authentication**.
+`npm run auth:demo` starts a **loopback-only**, transient sample API for server-side scopes, revocation, expiry and quota. Tokens can be issued only inside the reference service; no public issuance route, persistent storage, TLS, multi-process quotas or production authentication is supplied.
 
-`arena import` accepts capped external-agent JSONL trial logs with evidence digests. It strips private traces, cannot authenticate the evidence and **does not run an AI model or attack**. See docs/MCP.md, docs/AUTHORIZATION.md, and docs/AGENT-ADAPTER.md.
+`arena import` converts bounded external-agent JSONL logs to the existing paired-run schema. It retains only sanitized trial fields and evidence digests. It does not run an AI Agent or verify the source, signature, factual outcomes or cost estimates of externally submitted logs. See docs/MCP.md, docs/AUTHORIZATION.md and docs/AGENT-ADAPTER.md.
 
 # FEA v0.3 experimental Arena evaluation
 
