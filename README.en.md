@@ -209,3 +209,11 @@ Contributions of rules, synthetic fixtures, tests and format adapters are welcom
 A dedicated CI matrix installs pinned versions of Electron and Forge on **native Windows and macOS Intel runners**, builds our **owned Electron GUI fixture**, reads the **actual packaged binary fuse wire** using `@electron/fuses`, compares the ASAR header SHA-256 with the embedded **Windows PE resource** or **macOS Info.plist** hash, and launches the **packaged GUI** to verify a DOM marker and process exit.
 
 This is stronger evidence than declaration-only compatibility checks, but the fixture is **unsigned**. It does not validate publisher certificates, notarization, installers, third-party software or resistance to reverse engineering. See [native verification guide](docs/NATIVE-PACKAGE.md) and [CI workflow](.github/workflows/fea-native-package.yml).
+
+## v0.4.4: unified release audit (experimental)
+
+The new read-only command combines **bounded EXE/MSI/DMG/PKG format recognition, independently pinned artifact digests, Windows EXE publisher status, and optional FEA scan/native-build evidence**:
+
+    npm run release:audit -- ./dist/MyApp.exe --out ./release-report --expected-sha256 <TRUSTED_FEA_MANIFEST_DIGEST> --thumbprint <CERTIFICATE_FINGERPRINT>
+
+Outputs `release-audit.json` and `release-audit.md` with explicit **pass / fail / unassessed** states. Package headers are recognized **without mounting, extracting or auditing their internal payloads**; imported reports are unverified. Without real signer credentials and independent trust pins, the gate remains unassessed, not passed. See [scope and reproduction](docs/RELEASE-AUDIT.md). Original `assets/fea-icon.png` and charts remain untouched.
