@@ -1,3 +1,7 @@
+# v0.4.4 — Unified Release Audit (experimental)
+
+A bounded, read-only format recognizer and a consolidated three-state report have been added. Run `npm run release:audit -- <artifact.exe|msi|dmg|pkg> --out <report-folder>` and consult [the implementation guide](docs/RELEASE-AUDIT.md). No installer payload unpacking, commercial signing certificate or independent attestation has been included. `npm run release:audit-demo` covers negative unsigned/tampered outcomes.
+
 # FEA v0.4.3 — native publisher trust (experimental)
 
 This stage adds bounded release SHA-256 manifests and native publisher verification with pinned identities. Windows uses Get-AuthenticodeSignature with a specified certificate thumbprint; macOS requires codesign, pinned Team ID, Gatekeeper, and a valid stapled ticket. The three-platform CI verifies unsigned-fixture denial, **not** the validity of a real publisher's distribution. Installers are not unpacked. See [Release trust](docs/RELEASE-TRUST.md).

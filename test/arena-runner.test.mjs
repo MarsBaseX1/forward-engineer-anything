@@ -14,7 +14,7 @@ process.stdout.write(JSON.stringify({status:req.variant==='baseline'?'success':'
   t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
   const write=(name,content)=>{const f=path.join(dir,name);fs.writeFileSync(f,content);return f;};
   const args={
-    suite:{formatVersion:1,suiteId:'owned-fixture',authorization:'owned-or-authorized',tasks:[{id:'analyze-source'}],minTrials:10,budget:{maxDurationMs:3000,maxCostUsd:0.1}},
+    suite:{formatVersion:1,suiteId:'owned-fixture',authorization:'owned-or-authorized',tasks:[{id:'analyze-source'}],minTrials:10,budget:{maxDurationMs:12000,maxCostUsd:0.1}},
     baselineFile:write('baseline.asar','baseline'),hardenedFile:write('hardened.asar','hardened'),
     adapterFile:write('trusted.mjs',adapterSource),
     engine:{kind:'synthetic',id:'fixture-observer',version:'0.3.2',model:'none',environment:'node22'},

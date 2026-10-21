@@ -227,3 +227,11 @@ Windows 系统还可运行 `node src/cli.mjs signature ./my-app.exe --out ./audi
 新工作流在 **Windows 与 macOS Intel 原生 GitHub runner** 上安装固定版本的 Electron/Forge，**实际打包**本仓库自有的 Electron GUI 演示应用。使用 `@electron/fuses` 读取**打包二进制**中的 Fuse 位（包括 `OnlyLoadAppFromAsar`、`EnableEmbeddedAsarIntegrityValidation`），并将打包 ASAR 头部 SHA-256 与 **Windows PE `INTEGRITY/ELECTRONASAR` 资源**或 **macOS `Info.plist`**中的嵌入值对比。最后启动真正的打包应用，验证窗口中的 DOM 标记与进程退出结果。
 
 这与之前的合成启动测试不同：现在对**实际打包产物**取证。不过 CI 演示仍是**未签名、自有样本**，不代表商业应用已经签名、公证、通过 SmartScreen 或无法被逆向。详情见 [真实打包验证说明](docs/NATIVE-PACKAGE.md) 和 [原生 CI 工作流](.github/workflows/fea-native-package.yml)。
+
+## v0.4.4：统一发布验证（实验性）
+
+新增一条命令汇总 **EXE / MSI / DMG / PKG 基础格式识别、可信摘要比对、Windows EXE 发布者签名状态，以及可选的 FEA 扫描与原生打包证据**：
+
+    npm run release:audit -- ./dist/MyApp.exe --out ./release-report --expected-sha256 <受信任的FEA清单摘要> --thumbprint <证书指纹>
+
+结果为 `release-audit.json` 和 `release-audit.md`，明确区分 **pass / fail / unassessed**。仅检查安装包的受限头部结构，**不解压或审计 MSI/DMG/PKG 内部内容**；导入 JSON 也不能自证来源。没有真实证书和可信外部摘要时，默认不通过。查看 [边界与复现说明](docs/RELEASE-AUDIT.md)。原始 `assets/fea-icon.png` 与数据图均未改动。

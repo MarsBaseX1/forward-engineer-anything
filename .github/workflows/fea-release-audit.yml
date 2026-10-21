@@ -1,0 +1,42 @@
+name: FEA unified release audit (synthetic negative cases)
+on:
+  pull_request:
+    paths:
+      - 'src/release-audit.mjs'
+      - 'scripts/release-audit.mjs'
+      - 'test/release-audit.test.mjs'
+      - 'demo/release-audit.mjs'
+      - 'src/release-trust.mjs'
+      - 'package.json'
+      - '.github/workflows/fea-release-audit.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/release-audit.mjs'
+      - 'scripts/release-audit.mjs'
+      - 'test/release-audit.test.mjs'
+      - 'demo/release-audit.mjs'
+      - 'src/release-trust.mjs'
+      - 'package.json'
+      - '.github/workflows/fea-release-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bounded-audit:
+    name: Synthetic release audit (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-15-intel]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run complete test suite
+        run: npm test
+      - name: Assert unsigned/tampered release cannot pass
+        run: npm run release:audit-demo
