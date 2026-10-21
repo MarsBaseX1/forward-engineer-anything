@@ -209,3 +209,9 @@ Windows 系统还可运行 `node src/cli.mjs signature ./my-app.exe --out ./audi
 `v0.1` 提供资源扫描和 CI 门禁；`v0.2` 增加有边界的 ASAR 检查、Forge 审查建议和 Windows 签名状态；现已包含实验性 SARIF 生成与 Code Scanning 集成。下一步将按 [ANTI-REA-HARDENING.md](docs/ANTI-REA-HARDENING.md) 推进规则覆盖、构建加固、服务端迁移与有授权的对抗评测。详见 [路线图](docs/ROADMAP.md) 和 [威胁模型](docs/THREAT_MODEL.md)。
 
 欢迎贡献规则、合成测试样本与适配器。请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。项目采用 [Apache-2.0](LICENSE) 协议，不要求使用者开源自己的商业软件。FEA 是独立项目，不受 REA 或 Trivy 团队背书。
+
+## v0.4.2：真实 Forge 打包验证
+
+新工作流在 **Windows 与 macOS Intel 原生 GitHub runner** 上安装固定版本的 Electron/Forge，**实际打包**本仓库自有的 Electron GUI 演示应用。使用 `@electron/fuses` 读取**打包二进制**中的 Fuse 位（包括 `OnlyLoadAppFromAsar`、`EnableEmbeddedAsarIntegrityValidation`），并将打包 ASAR 头部 SHA-256 与 **Windows PE `INTEGRITY/ELECTRONASAR` 资源**或 **macOS `Info.plist`**中的嵌入值对比。最后启动真正的打包应用，验证窗口中的 DOM 标记与进程退出结果。
+
+这与之前的合成启动测试不同：现在对**实际打包产物**取证。不过 CI 演示仍是**未签名、自有样本**，不代表商业应用已经签名、公证、通过 SmartScreen 或无法被逆向。详情见 [真实打包验证说明](docs/NATIVE-PACKAGE.md) 和 [原生 CI 工作流](.github/workflows/fea-native-package.yml)。

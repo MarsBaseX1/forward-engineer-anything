@@ -1,0 +1,20 @@
+{
+  "name": "fea-electron-smoke",
+  "productName": "FEAElectronSmoke",
+  "version": "0.4.2",
+  "private": true,
+  "main": "main.cjs",
+  "description": "Owned CI-only real Electron Forge packaging and GUI smoke fixture",
+  "scripts": {
+    "package": "electron-forge package"
+  },
+  "devDependencies": {
+    "electron": "33.4.11",
+    "@electron-forge/cli": "7.4.0",
+    "@electron-forge/core": "7.4.0",
+    "@electron-forge/plugin-fuses": "7.4.0",
+    "@electron/fuses": "1.8.0",
+    "@electron/asar": "3.2.18",
+    "resedit": "2.0.3"
+  }
+}

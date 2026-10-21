@@ -197,3 +197,9 @@ This table describes **scope, not security superiority**. No cross-project bench
 `v0.1` introduced resource scanning and CI gates. `v0.2` adds bounded ASAR inspection, Forge planning suggestions, and Windows Authenticode status checks. Experimental SARIF export and Code Scanning upload are now available. Next steps follow [ANTI-REA-HARDENING.md](docs/ANTI-REA-HARDENING.md): expanded rule coverage, build hardening, server-side migration, and authorized adversarial evaluation. See the [roadmap](docs/ROADMAP.md) and [threat model](docs/THREAT_MODEL.md).
 
 Contributions of rules, synthetic fixtures, tests and format adapters are welcome—see [CONTRIBUTING.md](CONTRIBUTING.md). Licensed under [Apache-2.0](LICENSE); using FEA does not require you to open-source your proprietary application. FEA is independent of the REA and Trivy teams.
+
+## v0.4.2: native Forge package verification
+
+A dedicated CI matrix installs pinned versions of Electron and Forge on **native Windows and macOS Intel runners**, builds our **owned Electron GUI fixture**, reads the **actual packaged binary fuse wire** using `@electron/fuses`, compares the ASAR header SHA-256 with the embedded **Windows PE resource** or **macOS Info.plist** hash, and launches the **packaged GUI** to verify a DOM marker and process exit.
+
+This is stronger evidence than declaration-only compatibility checks, but the fixture is **unsigned**. It does not validate publisher certificates, notarization, installers, third-party software or resistance to reverse engineering. See [native verification guide](docs/NATIVE-PACKAGE.md) and [CI workflow](.github/workflows/fea-native-package.yml).
