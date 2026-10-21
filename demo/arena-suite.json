@@ -1,0 +1,18 @@
+{
+  "formatVersion": 1,
+  "suiteId": "fea-synthetic-fixture-v1",
+  "authorization": "owned-or-authorized",
+  "tasks": [
+    {
+      "id": "observe-source-map"
+    },
+    {
+      "id": "observe-internal-config"
+    }
+  ],
+  "minTrials": 10,
+  "budget": {
+    "maxDurationMs": 30000,
+    "maxCostUsd": 0.1
+  }
+}
