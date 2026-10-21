@@ -11,15 +11,19 @@ function fixture() {
   const cleanup=()=>fs.rmSync(root,{recursive:true,force:true});
   return {root,input,put,cleanup};
 }
-test('scans five exposure categories, never writes raw paths, secrets or file contents',t=>{
+test('scans exposure categories including new anti-REA rules, never writes raw paths, secrets or file contents',t=>{
   const f=fixture();t.after(f.cleanup);
   const secret='SYNTHETIC-SENSITIVE-VALUE-12345';
   f.put('debug.pdb','symbols');f.put('internal-config.json','{"INTERNAL_API_URL":"'+secret+'"}');
   f.put('credentials.pem','-----BEGIN PRIVATE KEY-----\n'+secret+'\n-----END PRIVATE KEY-----');
-  f.put('main.js.map','{}');f.put('main.js','//# sourceMappingURL=main.js.map');f.put('__tests__/a.test.js','ok');
+  f.put('main.js.map','{}');f.put('main.js','//# sourceMappingURL=main.js.map');
+  f.put('__tests__/a.test.js','ok');
+  f.put('auth.js','function isPremium(){return true;}');
+  f.put('config.js','const api_key = "sk-abcdef1234567890abcdef";');
+  f.put('logic.js','// TODO: calculatePrice for enterprise');
   const result=scanDirectory(f.input,DEFAULT_CONFIG,{out:path.join(f.root,'reports')});
   assert.equal(result.coverage.complete,true);
-  assert.deepEqual([...new Set(result.findings.map(f=>f.ruleId))].sort(),['FEA001','FEA002','FEA003','FEA004','FEA005']);
+  assert.deepEqual([...new Set(result.findings.map(f=>f.ruleId))].sort(),['FEA001','FEA002','FEA003','FEA004','FEA005','FEA006','FEA007','FEA008']);
   const json=JSON.stringify(result);assert.equal(json.includes(secret),false);assert.equal(json.includes('credentials.pem'),false);
   assert.equal(verifyReport(result,DEFAULT_CONFIG).ok,false);
 });
