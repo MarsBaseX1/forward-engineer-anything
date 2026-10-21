@@ -11,6 +11,7 @@ import {loadArenaJson,compareArena,arenaMarkdown} from './arena.mjs';
 import {importExternalFiles} from './arena-import.mjs';
 import {runPairedArena} from './arena-runner.mjs';
 import {generateMigrationSuggestions,migrationMarkdown} from './migrate-suggestions.mjs';
+import {generateObfuscationSuggestions,obfuscationMarkdown} from './obfuscation-suggestions.mjs';
 import {DEFAULT_CONFIG,VERSION,readConfig,scanDirectory,verifyReport,compareReports,comparisonMarkdown,writeJson} from './core.mjs';
 
 const help=`FEA ${VERSION} — Electron release-resource security checks (experimental)
@@ -29,6 +30,7 @@ Usage:
   fea release compat <project-dir> --platform win32|darwin --out <report.json>
   fea release inspect <unpacked-root> --platform win32|darwin --config .fea.json --out <report-dir> [--asar-sha256 SHA256]
   fea migrate <trusted-report.json> --out <suggestions-dir>
+  fea obfuscate <trusted-report.json> --out <suggestions-dir>
   fea arena compare <baseline-run.json> <hardened-run.json> --suite <suite.json> --out <report-dir>
   fea arena import <trials.jsonl> --suite <suite.json> --descriptor <descriptor.json> --out <run.json>
   fea arena execute --suite <suite.json> --baseline <app.asar> --hardened <app.asar> --adapter <trusted.mjs> --engine <engine.json> --out <dir> --i-own-artifacts
@@ -150,6 +152,15 @@ export function run(args) {
       writeJson(path.join(flags.out,'suggestions.json'),result);
       fs.writeFileSync(path.join(flags.out,'suggestions.md'),migrationMarkdown(result));
       console.log('Wrote migration suggestions: '+path.join(flags.out,'suggestions.md'));
+      return 0;
+    }
+    case 'obfuscate': {
+      if(positional.length!==1 || !flags.out)throw Error('obfuscate requires <trusted-report.json> --out');
+      const report=JSON.parse(fs.readFileSync(positional[0],'utf8'));
+      const result=generateObfuscationSuggestions(report);
+      writeJson(path.join(flags.out,'obfuscation.json'),result);
+      fs.writeFileSync(path.join(flags.out,'obfuscation.md'),obfuscationMarkdown(result));
+      console.log('Wrote obfuscation suggestions: '+path.join(flags.out,'obfuscation.md'));
       return 0;
     }
     case 'signature': {
