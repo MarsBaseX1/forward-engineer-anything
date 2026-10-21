@@ -13,6 +13,23 @@ cat demo/generated/reports/arena-execution/comparison.md
 
 The sample `demo/trusted-observer.mjs` observes FEA001 and FEA003 static findings in intentionally altered **owned** ASAR fixtures. It never invokes an AI model; its high baseline visibility rates are **not AI reverse-engineering success rates**.
 
+## Anti-REA suite (new rules)
+
+A second suite covers the rules added for raising REA-style analysis cost:
+
+```sh
+node src/cli.mjs arena execute \
+  --suite demo/arena-suite-anti-rea.json \
+  --baseline demo/generated/baseline/app.asar \
+  --hardened demo/generated/hardened/app.asar \
+  --adapter demo/rea-observer.mjs \
+  --engine demo/arena-executor-engine.json \
+  --out demo/generated/reports/arena-anti-rea \
+  --i-own-artifacts
+```
+
+See [REA-ADAPTER.md](REA-ADAPTER.md) for task IDs and how to replace the observer with a real REA adapter.
+
 ## Contract
 
 CLI: `node src/cli.mjs arena execute --suite <suite.json> --baseline <owned-artifact> --hardened <owned-artifact> --adapter <trusted.mjs> --engine <engine.json> --out <output-directory> --i-own-artifacts`.
