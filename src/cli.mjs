@@ -7,6 +7,7 @@ import {planForge} from './protect.mjs';
 import {previewHardening,applyHardening,rollbackHardening} from './protect-apply.mjs';
 import {verifyAuthenticode} from './signature.mjs';
 import {evaluateFuseCompatibility,inspectUnpackedRelease} from './release-readiness.mjs';
+import {snapshotArtifact,verifyPublisher} from './release-trust.mjs';
 import {loadArenaJson,compareArena,arenaMarkdown} from './arena.mjs';
 import {importExternalFiles} from './arena-import.mjs';
 import {runPairedArena} from './arena-runner.mjs';
@@ -30,6 +31,8 @@ Usage:
   fea signature <file.exe> --out <report-dir> [--thumbprint SHA1HEX]
   fea release compat <project-dir> --platform win32|darwin --out <report.json>
   fea release inspect <unpacked-root> --platform win32|darwin --config .fea.json --out <report-dir> [--asar-sha256 SHA256]
+  fea release manifest <file-or-directory> --out <manifest.json> [--expected-sha256 SHA256]
+  fea release publisher <file.exe|app.app> --platform win32|darwin --out <report.json> [--thumbprint SHA1] [--team-id TEAMID]
   fea migrate <trusted-report.json> --out <suggestions-dir>
   fea obfuscate <trusted-report.json> --out <suggestions-dir>
   fea runtime <trusted-report.json> --out <suggestions-dir>
@@ -45,7 +48,7 @@ function parse(argv) {
     const arg=argv[i];
     if(arg.startsWith('--')) {
       const name=arg.slice(2);
-      if(!['out','config','policy','profile','thumbprint','suite','descriptor','baseline','hardened','adapter','engine','i-own-artifacts','plan','state','receipt','platform','asar-sha256','help'].includes(name) || Object.hasOwn(flags,name))throw Error('Invalid flag: '+arg);
+      if(!['out','config','policy','profile','thumbprint','suite','descriptor','baseline','hardened','adapter','engine','i-own-artifacts','plan','state','receipt','platform','asar-sha256','expected-sha256','team-id','help'].includes(name) || Object.hasOwn(flags,name))throw Error('Invalid flag: '+arg);
       if(name==='help'||name==='i-own-artifacts'){flags[name]=true;continue;}
       if(!argv[i+1] || argv[i+1].startsWith('--')) throw Error('Missing value for '+arg);
       flags[name]=argv[++i];
@@ -129,8 +132,22 @@ export function run(args) {
       throw Error('protect supports preview, apply, rollback');
     }
     case 'release': {
-      if(positional.length!==2 || !flags.platform || !flags.out)throw Error('release requires compat/inspect <path> --platform win32|darwin --out');
+      if(positional.length!==2 || !flags.out)throw Error('release requires <operation> <path> --out');
       const [operation,location]=positional;
+      if(operation==='manifest'){
+        const report=snapshotArtifact(location,{expectedSha256:flags['expected-sha256']});
+        writeJson(flags.out,report);
+        console.log('Release manifest: '+report.files+' file(s); pinned digest: '+report.digestMatch);
+        return report.digestMatch===false?2:0;
+      }
+      if(operation==='publisher'){
+        if(!flags.platform)throw Error('release publisher requires --platform win32|darwin');
+        const report=verifyPublisher(location,{platform:flags.platform,expectedThumbprint:flags.thumbprint,expectedTeamId:flags['team-id']});
+        writeJson(flags.out,report);
+        console.log('Publisher verification: '+report.status+'; '+report.notice);
+        return report.passed?0:2;
+      }
+      if(!flags.platform)throw Error('release compat/inspect requires --platform');
       if(operation==='compat'){
         const report=evaluateFuseCompatibility(location,flags.platform);
         writeJson(flags.out,report);
@@ -145,7 +162,7 @@ export function run(args) {
         console.log('Release static inspection: '+result.status+'; not a signature, binary fuse, or GUI runtime verification.');
         return result.status==='static-checks-pass'?0:2;
       }
-      throw Error('release supports compat and inspect');
+      throw Error('release supports compat, inspect, manifest and publisher');
     }
     case 'migrate': {
       if(positional.length!==1 || !flags.out)throw Error('migrate requires <trusted-report.json> --out');
