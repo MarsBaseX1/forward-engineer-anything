@@ -14,30 +14,30 @@
   **[简体中文](README.md) · [Quick start](#quick-start) · [Reproducible data](#reproducible-demo-data) · [Security limits](#what-fea-does-not-promise) · [Contributing](CONTRIBUTING.md)**
 </div>
 
-> **FEA (Forward Engineer Anything)** is an open-source release security tool for desktop app authors. It helps teams identify unnecessarily exposed Electron assets, enforce reproducible release checks in CI, and compare observed findings before and after build improvements. **The goal is to raise the cost of analysis and tampering—not to promise that code cannot be reverse engineered.**
+> **FEA (Forward Engineer Anything)** is an open-source protection engineering framework for desktop app authors. It helps teams identify unnecessarily exposed Electron assets, enforce reproducible release checks in CI, plan hardening, and compare observed findings before and after build improvements. **The goal is to raise the cost of REA-style AI-assisted reverse engineering and tampering—not to promise that code cannot be reverse engineered.**
 
 ### Why FEA?
 
-AI-assisted analysis makes it easier to inspect shipped programs. Instead of claiming to hide every byte after release, ask three practical questions **before shipping**: *What is actually distributed? Which changes reduce unnecessary exposure? Did a subsequent release regress?*
+AI-assisted analysis (e.g. [REA](https://github.com/morluto/rea)) lowers the barrier to inspecting shipped programs. Instead of claiming to hide every byte after release, ask three practical questions **before shipping**: *What is actually distributed? Which changes reduce unnecessary exposure? Did a subsequent release regress?*
 
-FEA currently focuses on the Electron release workflow: **audit → sanitized evidence → CI policy gate → before/after comparison**. The scanner and demo run without a cloud model, paid account, or API key.
+FEA currently focuses on the Electron release workflow: **audit → sanitized evidence → CI policy gate → before/after comparison**. The scanner and demo run without a cloud model, paid account, or API key. See [ANTI-REA-HARDENING.md](docs/ANTI-REA-HARDENING.md).
 
 ## Reproducible demo data
 
 <div align="center">
-  <img src="assets/fea-demo-exposure.svg" alt="On FEA's own synthetic Electron fixture, detected release-exposure findings fall from 10 to 0 across 8 categories." width="95%" />
+  <img src="assets/fea-demo-exposure.svg" alt="On FEA's own synthetic Electron fixture, detected release-exposure findings fall from multiple to 0 across 9 categories." width="95%" />
 </div>
 
 | Metric | Reproducible result | What it means |
 | :--- | ---: | :--- |
-| **10 → 0** | Synthetic demo findings | Deliberately planted exposures removed in the improved fixture |
-| **8 classes** | FEA001–FEA008 | Source maps, private-key markers, internal config, debug assets, test assets |
-| **66 / 66** | Local automated tests passed | Including bounded ASAR parsing, malformed inputs and explicit fallback behavior |
+| **Multiple → 0** | Synthetic demo findings | Deliberately planted exposures removed in the improved fixture |
+| **9 classes** | FEA001–FEA009 | Source maps, private-key markers, internal config, debug assets, test assets, client auth, hardcoded secrets, unobfuscated logic, client data exposure |
+| **Multiple** | Local automated tests passed | Including bounded ASAR parsing, malformed inputs and explicit fallback behavior |
 | **2 inputs** | Resource tree / `.asar` | Currently scoped Electron release-resource forms |
 
 **Reproduce:** `npm test && npm run demo && npm run demo:check`. The chart is generated from `demo/generated/reports/comparison/comparison.json` by [`scripts/render-readme-chart.mjs`](scripts/render-readme-chart.mjs).
 
-> ⚠️ **These are synthetic fixture numbers, not an independent security benchmark.** "6 → 0" means fewer observable release-hygiene findings on the same sample. It does not measure resistance to reverse engineering or guarantee security.
+> ⚠️ **These are synthetic fixture numbers, not an independent security benchmark.** Findings falling from multiple to 0 means fewer observable release-hygiene findings on the same sample. It does not measure resistance to reverse engineering or guarantee security.
 
 ## How it works
 
@@ -58,10 +58,11 @@ flowchart LR
 
 | Capability | Current scope | Boundary |
 | :--- | :--- | :--- |
-| **Audit** | Electron resource directories and bounded read-only ASAR, five exposure categories | Not an arbitrary EXE/installer parser |
+| **Audit** | Electron resource directories and bounded read-only ASAR, FEA001–FEA009 | Not an arbitrary EXE/installer parser |
 | **Verify** | CI-compatible policy gate over sanitized evidence | Reports must originate in a trusted build context |
 | **Compare** | Before/after JSON + Markdown | Not AI attacker-success benchmarking |
-| **Protect (preview/apply/rollback)** | Review and apply one supported Forge JSON setting; restore exact bytes from backup | No project code execution, no automated fuses or signed-binary modification |
+| **Protect (preview/apply/rollback)** | Review and apply ASAR + recommended integrity Fuses on supported Forge JSON; restore exact bytes from backup | No project code execution, no signed-binary modification |
+| **Migrate / Obfuscate** | Generate server-side migration and optional obfuscation suggestions | Does not automatically rewrite code |
 | **Signature (preview)** | Windows Authenticode status and optional expected signer thumbprint | Returns "unassessed" elsewhere; does not sign files |
 
 ## Arena v0.3 (experimental evaluation protocol)
@@ -113,7 +114,7 @@ The separate [Code Scanning workflow](.github/workflows/fea-code-scanning.yml) u
 
 ## v0.4: Reviewed Forge JSON patching and exact rollback (experimental)
 
-For supported **Electron Forge 7.4+ JSON manifests** only, FEA can preview and apply a single bounded setting change (`packagerConfig.asar: true`) and restore the original manifest from a protected external backup. It does not execute project JS/TS configuration, apply Electron Fuse settings automatically, touch signed artifacts, or claim code encryption.
+For supported **Electron Forge 7.4+ JSON manifests** only, FEA can preview and apply bounded setting changes (`packagerConfig.asar: true` plus recommended integrity Fuses) and restore the original manifest from a protected external backup. It does not execute project JS/TS configuration, touch signed artifacts, or claim code encryption.
 
 ```bash
 node src/cli.mjs protect preview ./my-forge-project --out ./forge-plan.json
@@ -124,7 +125,6 @@ npm run protect:demo
 ```
 
 The apply step rechecks the source digest and refuses stale/tampered plans; rollback rejects drift, including changes made after applying. Backups must live **outside the project** to avoid accidentally committing secrets. Only use this against a trusted, static local worktree. **ASAR is packaging, not encryption or proof of reverse-engineering resistance.** See [documented limitations](docs/PROTECT-AUTOMATION.md).
-
 
 ## v0.4.1: Fuse prerequisites and unpacked release inspection (experimental)
 
@@ -157,6 +157,11 @@ Inspect a release-resource directory, an actual ASAR archive or an Electron Forg
 node src/cli.mjs init --out my-fea.json
 node src/cli.mjs scan ./my-electron-resources --config my-fea.json --out ./audit/resources
 node src/cli.mjs verify ./audit/resources/report.json --policy my-fea.json
+
+# Migration and obfuscation suggestions
+node src/cli.mjs migrate ./audit/resources/report.json --out ./audit/migrate
+node src/cli.mjs obfuscate ./audit/resources/report.json --out ./audit/obfuscate
+
 node src/cli.mjs asar-scan ./my-app.asar --config my-fea.json --out ./audit/asar
 node src/cli.mjs plan ./my-electron-project --out ./audit/plan
 ```
@@ -173,8 +178,8 @@ The demo workflow runs on **Ubuntu and Windows**, tests the CLI, generates inten
 
 | Project | Primary purpose | Relationship |
 | :--- | :--- | :--- |
-| **FEA** | Pre-release Electron asset hygiene, CI policy gates, reproducible comparisons | Focused on the **developer release pipeline** |
-| [REA — Reverse Engineer Anything](https://github.com/morluto/rea) | AI-assisted analysis of distributed software | Different goal; independent project, no affiliation |
+| **FEA** | Pre-release Electron asset hygiene, CI policy gates, reproducible comparisons, and evolving into a protection framework that raises reverse-engineering cost | Focused on the **developer release and protection pipeline** |
+| [REA — Reverse Engineer Anything](https://github.com/morluto/rea) | AI-assisted analysis of distributed software | Different goal; independent project, no affiliation; FEA aims to raise its analysis cost |
 | [Trivy](https://github.com/aquasecurity/trivy) | Broader scanning of images, file systems, dependency vulnerabilities, misconfiguration and secrets | Broader scope; FEA specializes in desktop-release evidence |
 
 This table describes **scope, not security superiority**. No cross-project benchmark under comparable conditions has been performed.
@@ -189,6 +194,6 @@ This table describes **scope, not security superiority**. No cross-project bench
 
 ## Roadmap and contribution
 
-`v0.1` introduced resource scanning and CI gates. `v0.2` adds bounded ASAR inspection, Forge planning suggestions, and Windows Authenticode status checks. Experimental SARIF export and Code Scanning upload are now available. Next steps include more rigorous rule coverage, validated build adapters, and authorized reproducible adversarial evaluation. See the [roadmap](docs/ROADMAP.md) and [threat model](docs/THREAT_MODEL.md).
+`v0.1` introduced resource scanning and CI gates. `v0.2` adds bounded ASAR inspection, Forge planning suggestions, and Windows Authenticode status checks. Experimental SARIF export and Code Scanning upload are now available. Next steps follow [ANTI-REA-HARDENING.md](docs/ANTI-REA-HARDENING.md): expanded rule coverage, build hardening, server-side migration, and authorized adversarial evaluation. See the [roadmap](docs/ROADMAP.md) and [threat model](docs/THREAT_MODEL.md).
 
 Contributions of rules, synthetic fixtures, tests and format adapters are welcome—see [CONTRIBUTING.md](CONTRIBUTING.md). Licensed under [Apache-2.0](LICENSE); using FEA does not require you to open-source your proprietary application. FEA is independent of the REA and Trivy teams.
