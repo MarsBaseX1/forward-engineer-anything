@@ -1,3 +1,4 @@
+import {packDemoAsar} from './pack-asar.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -21,6 +22,7 @@ for(const kind of ['baseline','hardened']) {
     write(path.join(target,'debug.pdb'),'Synthetic demonstration artifact. Not a real PDB.');
     write(path.join(target,'__tests__','smoke.test.js'),'// synthetic non-production fixture\n');
   }
+  packDemoAsar(target,path.join(output,kind,'app.asar'));
 }
 console.log('Generated baseline and hardened runnable Electron resource trees under demo/generated/');
 console.log('No user secrets or real private keys are included.');

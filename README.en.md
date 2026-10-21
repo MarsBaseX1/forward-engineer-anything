@@ -1,68 +1,117 @@
 <div align="center">
-  <img src="assets/fea-icon.png" alt="Forward Engineer Anything icon" width="160" />
+  <img src="assets/fea-hero.svg" alt="FEA — Forward Engineer Anything: Ship less. Prove more." width="100%" />
 
-# Forward Engineer Anything (FEA)
+  <br />
 
-**Build forward. Raise the cost of reverse engineering.**
+  [![CI](https://github.com/MarsBaseX1/forward-engineer-anything/actions/workflows/fea-security.yml/badge.svg)](https://github.com/MarsBaseX1/forward-engineer-anything/actions/workflows/fea-security.yml)
+  [![License](https://img.shields.io/badge/license-Apache--2.0-2dbfa4)](LICENSE)
+  ![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A5%2020-294754)
+  ![Stage](https://img.shields.io/badge/stage-experimental-667b90)
 
-[简体中文](README.md) · English
-
+  **[简体中文](README.md) · [Quick start](#quick-start) · [Reproducible data](#reproducible-demo-data) · [Security limits](#what-fea-does-not-promise) · [Contributing](CONTRIBUTING.md)**
 </div>
 
-FEA is an open-source protection engineering project for authors of Windows and macOS desktop software. It aims to reduce secrets and unnecessary implementation details shipped to clients, improve authorization and release boundaries, and measure the remaining risks with reproducible evidence.
+> **FEA (Forward Engineer Anything)** is an open-source release security tool for desktop app authors. It helps teams identify unnecessarily exposed Electron assets, enforce reproducible release checks in CI, and compare observed findings before and after build improvements. **The goal is to raise the cost of analysis and tampering—not to promise that code cannot be reverse engineered.**
 
-> **Status: design stage.** This repository contains a product design, threat model, and roadmap. There is no runnable FEA CLI, npm package, or GitHub Action yet. All capabilities and milestones below are planned.
+### Why FEA?
 
-## Why FEA
+AI-assisted analysis makes it easier to inspect shipped programs. Instead of claiming to hide every byte after release, ask three practical questions **before shipping**: *What is actually distributed? Which changes reduce unnecessary exposure? Did a subsequent release regress?*
 
-AI-assisted analysis tools such as [REA](https://github.com/morluto/rea) make it easier to inspect distributed software. FEA helps software authors answer three practical questions:
+FEA currently focuses on the Electron release workflow: **audit → sanitized evidence → CI policy gate → before/after comparison**. The scanner and demo run without a cloud model, paid account, or API key.
 
-- What does this release expose?
-- Which protective changes produce measurable benefits?
-- Has the next release reintroduced a known risk?
+## Reproducible demo data
 
-“Anything” describes the long-term adapter vision. Each release will support only explicitly documented inputs and checks.
+<div align="center">
+  <img src="assets/fea-demo-exposure.svg" alt="On FEA's own synthetic Electron fixture, detected release-exposure findings fall from 6 to 0 across 5 categories." width="95%" />
+</div>
 
-FEA aims to reduce avoidable exposure and unauthorized use, and increase the cost of analysis and modification. Client-side code and observable behavior can still be analyzed or reimplemented. Obfuscation and integrity checks are additional defensive layers; they do not replace server-side authorization or sound trust boundaries.
+| Metric | Reproducible result | What it means |
+| :--- | ---: | :--- |
+| **6 → 0** | Synthetic demo findings | Deliberately planted exposures removed in the improved fixture |
+| **5 classes** | FEA001–FEA005 | Source maps, private-key markers, internal config, debug assets, test assets |
+| **15 / 15** | Local automated tests passed | Including bounded ASAR parsing, malformed inputs and explicit fallback behavior |
+| **2 inputs** | Resource tree / `.asar` | Currently scoped Electron release-resource forms |
 
-## Four modules
+**Reproduce:** `npm test && npm run demo && npm run demo:check`. The chart is generated from `demo/generated/reports/comparison/comparison.json` by [`scripts/render-readme-chart.mjs`](scripts/render-readme-chart.mjs).
 
-| Module | Planned purpose | First milestone |
-| --- | --- | --- |
-| **Audit** | Inspect release resources without modifying them; report rules, evidence, confidence, and coverage. | v0.1 |
-| **Protect** | Propose reviewable changes for supported build systems, with rollback and functional verification steps. | v0.2 |
-| **Verify** | Enforce CI policies, then add final-artifact signature and release-integrity checks. | v0.1 policy gates; v0.2 platform checks |
-| **Arena** | Compare baseline and hardened builds of owned demo applications under fixed analysis budgets. | v0.3 |
+> ⚠️ **These are synthetic fixture numbers, not an independent security benchmark.** "6 → 0" means fewer observable release-hygiene findings on the same sample. It does not measure resistance to reverse engineering or guarantee security.
 
-Deterministic rules will decide scan findings and CI policy outcomes. AI may explain evidence and suggest changes; scanning and policy gates will not require a model service.
+## How it works
 
-## Planned v0.1 scope
+```mermaid
+flowchart LR
+    A[Electron release resources] --> B{FEA Audit}
+    B --> C[Findings + coverage evidence]
+    C --> D{Verify policy gate}
+    D -->|Pass| E[Continue packaging / signing]
+    D -->|Fail| F[Review / improve build]
+    F --> A
+    C --> G[Compare before / after]
+    H[Forge configuration] --> I[Protect: review-only plan]
+    J[Windows EXE] --> K[Authenticode status]
+```
 
-The first release targets **developer-provided Electron release-resource directories** on Windows and macOS. Inputs must identify their stage as `prepackage` or `developer-extracted`.
+### What works today
 
-Planned deliverables include a local CLI, versioned configuration, JSON and SARIF reports, configurable CI policy gates, and public synthetic test fixtures. Five check categories cover source maps, private-key format candidates, internal configuration, debug symbols, and development assets.
+| Capability | Current scope | Boundary |
+| :--- | :--- | :--- |
+| **Audit** | Electron resource directories and bounded read-only ASAR, five exposure categories | Not an arbitrary EXE/installer parser |
+| **Verify** | CI-compatible policy gate over sanitized evidence | Reports must originate in a trusted build context |
+| **Compare** | Before/after JSON + Markdown | Not AI attacker-success benchmarking |
+| **Protect (preview)** | Review-only Electron Forge JSON configuration advice | Never rewrites configuration or executes target project code |
+| **Signature (preview)** | Windows Authenticode status and optional expected signer thumbprint | Returns "unassessed" elsewhere; does not sign files |
 
-Candidate secrets will not be tested against live services. Reports must redact sensitive evidence, identify unassessed content and incomplete scans, and support documented exceptions with owners and expiry dates.
+## Quick start
 
-v0.1 will not read raw ASAR archives, parse EXE/MSI/DMG installers or native binaries, verify code signatures, modify projects, or provide runtime protection. A resource-directory scan does not establish the contents or security of a final installer. ASAR is an archive format, not a confidentiality boundary.
+Requires **Node.js 20+**; the scanner and demo have no install-time npm dependencies.
 
-## Roadmap
+```bash
+git clone https://github.com/MarsBaseX1/forward-engineer-anything.git
+cd forward-engineer-anything
+npm test
+npm run demo
+npm run demo:check
+cat demo/generated/reports/comparison/comparison.md
+```
 
-- **v0.1 — Audit and CI policy gates:** resource scanning, structured reports, and reproducible fixtures.
-- **v0.2 — Protect and platform verification:** bounded ASAR inspection, reviewable Electron Forge build changes, and Windows/macOS signature adapters.
-- **v0.3 — Arena, MCP, and authorization reference:** owned demo applications, a reference authorization service, and an optional version-pinned REA evaluation adapter.
-- **v0.4 — Native adapters and secure updates:** separately verified format adapters and integration with established update frameworks.
+Inspect a release-resource directory, an actual ASAR archive or an Electron Forge project:
 
-Milestones depend on acceptance evidence rather than calendar promises. An analysis timeout means a task did not succeed within its budget; it does not prove that software cannot be reverse engineered.
+```bash
+node src/cli.mjs init --out my-fea.json
+node src/cli.mjs scan ./my-electron-resources --config my-fea.json --out ./audit/resources
+node src/cli.mjs verify ./audit/resources/report.json --policy my-fea.json
+node src/cli.mjs asar-scan ./my-app.asar --config my-fea.json --out ./audit/asar
+node src/cli.mjs plan ./my-electron-project --out ./audit/plan
+```
 
-## Documentation
+On Windows, `node src/cli.mjs signature ./my-app.exe --out ./audit/signature --thumbprint <expected-signer-thumbprint>` performs a platform-backed status check. On unsupported hosts it reports **unassessed**, not success. See the [implementation guide](IMPLEMENTATION.md) for details.
 
-- [Product and architecture design](docs/superpowers/specs/2026-10-21-fea-design.md) (Chinese)
-- [Threat model and protection boundaries](docs/THREAT_MODEL.md) (Chinese)
-- [Release scope and acceptance criteria](docs/ROADMAP.md) (Chinese)
+## GitHub Actions integration
 
-## License and responsible use
+[Read the workflow](.github/workflows/fea-security.yml) · [Check CI status](https://github.com/MarsBaseX1/forward-engineer-anything/actions/workflows/fea-security.yml)
 
-The project is licensed under [Apache-2.0](LICENSE). Third-party components retain their respective licenses. The design keeps protected application code, signing keys, customer data, and server secrets separately managed; using FEA does not require opening the protected application's source code.
+The demo workflow runs on **Ubuntu and Windows**, tests the CLI, generates intentionally exposed and improved Electron fixture builds, compares resource-tree and ASAR findings and uploads sanitized reports. It **does not inspect production installers automatically**: point it to a trustworthy build artifact when adapting it for an actual application.
 
-FEA is independent of REA and is not affiliated with or endorsed by its maintainers. Evaluation targets must be owned by the operator or explicitly authorized for examination. The project respects legitimate interoperability, auditing, preservation, and security research.
+## How FEA differs from other projects
+
+| Project | Primary purpose | Relationship |
+| :--- | :--- | :--- |
+| **FEA** | Pre-release Electron asset hygiene, CI policy gates, reproducible comparisons | Focused on the **developer release pipeline** |
+| [REA — Reverse Engineer Anything](https://github.com/morluto/rea) | AI-assisted analysis of distributed software | Different goal; independent project, no affiliation |
+| [Trivy](https://github.com/aquasecurity/trivy) | Broader scanning of images, file systems, dependency vulnerabilities, misconfiguration and secrets | Broader scope; FEA specializes in desktop-release evidence |
+
+This table describes **scope, not security superiority**. No cross-project benchmark under comparable conditions has been performed.
+
+## What FEA does not promise
+
+- Client-distributed code can still be inspected, modified or reimplemented. **ASAR is not an encryption boundary.**
+- A successful scan does not prove that an app has no secrets or vulnerabilities. Client checks never replace server-side authorization.
+- Authenticity checks are not code encryption or protection against all local modifications.
+- Arbitrary EXE/MSI/DMG unpacking, automated protective code patches, AI resistance scores, macOS signing checks and Arena benchmarking are **not implemented**.
+- **v0.2 is experimental**, not an independent security audit or certification. Validate supported artifact formats and failure modes before relying on it for a production gate.
+
+## Roadmap and contribution
+
+`v0.1` introduced resource scanning and CI gates. `v0.2` adds bounded ASAR inspection, Forge planning suggestions, and Windows Authenticode status checks. Next steps include more rigorous rule coverage, stable SARIF, validated build adapters, and authorized reproducible adversarial evaluation. See the [roadmap](docs/ROADMAP.md) and [threat model](docs/THREAT_MODEL.md).
+
+Contributions of rules, synthetic fixtures, tests and format adapters are welcome—see [CONTRIBUTING.md](CONTRIBUTING.md). Licensed under [Apache-2.0](LICENSE); using FEA does not require you to open-source your proprietary application. FEA is independent of the REA and Trivy teams.

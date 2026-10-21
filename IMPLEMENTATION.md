@@ -1,3 +1,25 @@
+# FEA v0.2 experimental capabilities
+
+The v0.1 resource-directory scanner remains available. v0.2 adds **bounded read-only ASAR inspection**, **review-only Electron Forge planning**, and **Windows-only Authenticode status inspection**. It does not guarantee confidentiality or tamper resistance and has not yet been independently security audited. This release does **not** apply Forge changes, create signatures, parse installers, inspect Mach-O or notarization, or run reverse-engineering benchmarks.
+
+```sh
+npm test
+npm run demo && npm run demo:check
+node src/cli.mjs asar-scan ./app.asar --config .fea.json --out ./audit/asar
+node src/cli.mjs verify ./audit/asar/report.json --policy .fea.json
+node src/cli.mjs plan ./my-electron-forge-project --out ./audit/plan
+# Windows only, on a trusted host (may depend on system certificate/revocation connectivity):
+node src/cli.mjs signature ./my-app.exe --thumbprint 0123456789abcdef0123456789abcdef01234567 --out ./audit/signature
+```
+
+ASAR scanning reads the archive index and bounded file contents, including referenced `.asar.unpacked` sidecars; it rejects duplicate JSON keys, links, unsafe names, invalid offsets, oversized entries, mismatched SHA-256 integrity metadata, and absent sidecars as incomplete coverage. This prototype deliberately rejects several rare or unsupported formats; test against real production Electron/asar versions before making release decisions. Malformed inputs fail closed and findings contain hashed paths only. The demo packs real `.asar` fixture archives from owned Electron source files without installing Electron; this fixture writer is for tests, not for production packaging. ASAR scanning does **not** establish whether the embedded header hash matches an external code-signed application.
+
+The Forge planner reads only `package.json` or `forge.config.json` and emits manual configuration recommendations. It will not execute `forge.config.js` or modify build settings. The suggested ASAR integrity fuses require compatible Electron / Forge versions, verified app behavior, trusted signing and final-artifact checks. See [Electron fuses](https://www.electronjs.org/docs/latest/tutorial/fuses) and [ASAR integrity](https://www.electronjs.org/docs/latest/tutorial/asar-integrity).
+
+Signature inspection uses Windows `Get-AuthenticodeSignature`. Results on non-Windows systems, errors, or missing trust data are explicitly unassessed (policy failure), not a false pass. Pin expected signers using the certificate SHA-1 thumbprint argument; signature status alone does not authenticate your intended publisher. Windows trust evaluation may consult network resources depending on OS revocation policy. Does not claim to verify all bytes or all certificate policy conditions.
+
+## Existing v0.1 documentation
+
 # FEA runnable MVP — Electron resource auditing
 
 This experimental, **dependency-free** Node.js implementation covers the requested CLI, GitHub Actions gate, before/after report and a real minimal Electron app. It is an initial implementation of the [design-stage roadmap](docs/ROADMAP.md), **not an anti-reversing product or a security certification**.
@@ -48,10 +70,10 @@ The scanner never executes target code or checks candidate secrets online. Input
 
 ## Known limitations and threat boundaries
 
-- v0.1 does **not** inspect raw `.asar`, executable `.exe`, `.msi`, `.dmg`, signing status, update channels, network permissions or binaries. It is not a general-purpose reverse-engineering defense.
+- v0.1 does not inspect installers `.msi`, `.dmg`, update channels, network permissions or arbitrary native binaries. v0.2 adds bounded ASAR reads and Windows-only EXE signature status, not full installer introspection. It is not a general-purpose reverse-engineering defense.
 - Private paths are hashed by default, reducing report exposure but making manual localization less convenient. Findings may have false positives and false negatives.
 - A `report.json` file is **not signed or authenticated**; verification is trustworthy only when that file comes from the same protected CI build context. Do not accept a third party's JSON file as proof of security.
-- This MVP does not yet implement the planned `protect`, `arena`, MCP interface, SARIF export or real AI-assisted reverse-engineering benchmark. The before/after report compares deterministic release-resource findings, **not attacker success rates**.
+- This MVP does not yet implement automatic protective code patches, `arena`, MCP interface, SARIF export or real AI-assisted reverse-engineering benchmark. The before/after report compares deterministic release-resource findings, **not attacker success rates**.
 - Content checks target readable text extensions; text hidden in unknown binary formats or containers is not fully analyzed. This input limitation is not proof no secrets are present.
 - Code signing, obfuscation and `asar` packing do not guarantee code confidentiality. Server-side authorization and minimizing shipped secrets are independent requirements.
 
