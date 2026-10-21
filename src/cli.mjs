@@ -1,0 +1,76 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+import path from 'node:path';
+import {DEFAULT_CONFIG,VERSION,readConfig,scanDirectory,verifyReport,compareReports,comparisonMarkdown,writeJson} from './core.mjs';
+
+const help=`FEA ${VERSION} — Electron release-resource security checks (experimental)
+Usage:
+  fea init --profile electron-resources [--out .fea.json]
+  fea scan <resources-dir> --config .fea.json --out <report-dir>
+  fea verify <report.json> --policy .fea.json
+  fea compare <before.json> <after.json> --out <comparison-dir>
+Exit codes: 0 success, 2 policy/coverage failure, 1 invalid input or error.
+IMPORTANT: v0.1 scans extracted/prepackage RESOURCE DIRECTORIES, not raw ASAR or installers.
+`;
+function parse(argv) {
+  const positional=[], flags={};
+  for(let i=0;i<argv.length;i++) {
+    const arg=argv[i];
+    if(arg.startsWith('--')) {
+      const name=arg.slice(2);
+      if(!['out','config','policy','profile','help'].includes(name) || Object.hasOwn(flags,name))throw Error('Invalid flag: '+arg);
+      if(name==='help'){flags.help=true;continue;}
+      if(!argv[i+1] || argv[i+1].startsWith('--')) throw Error('Missing value for '+arg);
+      flags[name]=argv[++i];
+    } else positional.push(arg);
+  }
+  return {positional,flags};
+}
+function reportSummary(report) {
+  return `FEA scan — ${report.coverage.complete?'complete':'INCOMPLETE'}\nInput stage: ${report.inputStage}\nFiles: ${report.coverage.scannedFiles}\nFindings: ${report.findings.length}\n${report.findings.map(f=>f.ruleId+' '+f.pathId+' ('+f.severity+')').join('\n')}\n${report.coverage.errors.length?'Coverage errors: '+report.coverage.errors.join(', '):''}\nNote: path IDs are hashed; reports contain no raw paths or secret values.\n`;
+}
+export function run(args) {
+  const [command,...rest]=args;
+  if(!command || command==='--help' || command==='help') {process.stdout.write(help);return 0;}
+  const {positional,flags}=parse(rest);
+  if(flags.help) {process.stdout.write(help);return 0;}
+  switch(command) {
+    case 'init': {
+      if(positional.length || flags.profile && flags.profile!=='electron-resources') throw Error('Only electron-resources profile is supported');
+      const filename=flags.out || '.fea.json';
+      if(fs.existsSync(filename))throw Error('Refusing to overwrite config: '+filename);
+      writeJson(filename,DEFAULT_CONFIG);
+      console.log('Created '+filename);
+      return 0;
+    }
+    case 'scan': {
+      if(positional.length!==1 || !flags.out)throw Error('scan requires <resources-dir> and --out');
+      const config=readConfig(flags.config || '.fea.json');
+      const report=scanDirectory(positional[0],config,{out:flags.out});
+      writeJson(path.join(flags.out,'report.json'),report);
+      fs.writeFileSync(path.join(flags.out,'summary.txt'),reportSummary(report));
+      console.log(reportSummary(report));
+      return report.coverage.complete?0:2;
+    }
+    case 'verify': {
+      if(positional.length!==1)throw Error('verify requires a report.json');
+      const config=readConfig(flags.policy || flags.config || '.fea.json');
+      const result=verifyReport(JSON.parse(fs.readFileSync(positional[0],'utf8')),config);
+      console.log(result.ok?'PASS: no blocking findings and complete coverage':'FAIL: '+result.blockedCount+' blocking finding(s); '+result.problems.join(', '));
+      console.log(result.notice);
+      return result.ok?0:2;
+    }
+    case 'compare': {
+      if(positional.length!==2 || !flags.out)throw Error('compare requires <before.json> <after.json> --out');
+      const c=compareReports(...positional.map(f=>JSON.parse(fs.readFileSync(f,'utf8'))));
+      writeJson(path.join(flags.out,'comparison.json'),c);
+      fs.mkdirSync(flags.out,{recursive:true});
+      fs.writeFileSync(path.join(flags.out,'comparison.md'),comparisonMarkdown(c));
+      console.log(comparisonMarkdown(c));
+      return 0;
+    }
+    default: throw Error('Unknown command '+command+'\n'+help);
+  }
+}
+try {process.exitCode=run(process.argv.slice(2));}
+catch(err) {console.error('FEA error: '+err.message);process.exitCode=1;}
