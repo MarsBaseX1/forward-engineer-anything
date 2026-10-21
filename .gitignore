@@ -1,0 +1,13 @@
+# Private reports, working evidence, and temporary publishing artifacts
+.fea/
+tmp/
+output/
+
+# Local credentials
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
