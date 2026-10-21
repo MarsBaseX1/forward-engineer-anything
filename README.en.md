@@ -32,7 +32,7 @@ FEA currently focuses on the Electron release workflow: **audit → sanitized ev
 | :--- | ---: | :--- |
 | **6 → 0** | Synthetic demo findings | Deliberately planted exposures removed in the improved fixture |
 | **5 classes** | FEA001–FEA005 | Source maps, private-key markers, internal config, debug assets, test assets |
-| **33 / 33** | Local automated tests passed | Including bounded ASAR parsing, malformed inputs and explicit fallback behavior |
+| **53 / 53** | Local automated tests passed | Including bounded ASAR parsing, malformed inputs and explicit fallback behavior |
 | **2 inputs** | Resource tree / `.asar` | Currently scoped Electron release-resource forms |
 
 **Reproduce:** `npm test && npm run demo && npm run demo:check`. The chart is generated from `demo/generated/reports/comparison/comparison.json` by [`scripts/render-readme-chart.mjs`](scripts/render-readme-chart.mjs).
@@ -50,7 +50,7 @@ flowchart LR
     D -->|Fail| F[Review / improve build]
     F --> A
     C --> G[Compare before / after]
-    H[Forge configuration] --> I[Protect: review-only plan]
+    H[Forge JSON configuration] --> I[Protect: preview / apply / rollback]
     J[Windows EXE] --> K[Authenticode status]
 ```
 
@@ -61,7 +61,7 @@ flowchart LR
 | **Audit** | Electron resource directories and bounded read-only ASAR, five exposure categories | Not an arbitrary EXE/installer parser |
 | **Verify** | CI-compatible policy gate over sanitized evidence | Reports must originate in a trusted build context |
 | **Compare** | Before/after JSON + Markdown | Not AI attacker-success benchmarking |
-| **Protect (preview)** | Review-only Electron Forge JSON configuration advice | Never rewrites configuration or executes target project code |
+| **Protect (preview/apply/rollback)** | Review and apply one supported Forge JSON setting; restore exact bytes from backup | No project code execution, no automated fuses or signed-binary modification |
 | **Signature (preview)** | Windows Authenticode status and optional expected signer thumbprint | Returns "unassessed" elsewhere; does not sign files |
 
 ## Arena v0.3 (experimental evaluation protocol)
@@ -99,6 +99,31 @@ node src/cli.mjs arena execute --suite demo/arena-suite.json --baseline demo/gen
 ```
 
 **Limits:** the bundled adapter is a **scripted synthetic fixture, not an AI reverse-engineering experiment**. This is **not a sandbox**: never execute untrusted adapters. Reported remote model costs/outcomes are not independently verifiable by FEA. Real Agent studies require explicitly authorized targets, separate review of the adapter and success criteria, and an isolated environment. See [runner guide](docs/ARENA-EXECUTOR.md).
+
+## v0.3.3: SARIF and GitHub Code Scanning (experimental)
+
+FEA now exports **complete** resource-scan findings as SARIF 2.1.0. GitHub needs a physical alert location, so results point to a tracked [privacy anchor](.github/fea-sarif-anchor.md) instead of the actual distributed asset. **The anchor is not the vulnerable file.** Consult the private, trusted FEA report to locate the hashed asset.
+
+```bash
+npm run demo && npm run demo:check && npm run sarif:demo
+node src/cli.mjs sarif demo/generated/reports/baseline/report.json --out demo/generated/reports/baseline/findings.sarif
+```
+
+The separate [Code Scanning workflow](.github/workflows/fea-code-scanning.yml) uploads **only the owned clean synthetic fixture** on pushes to `main`, testing upload plumbing without publishing artificial security alerts. For real products, replace the fixture with a trusted build, run `scan → verify → sarif`, and keep the same anchor in the target repository. Neither a clean SARIF report nor its upload proves immunity to reverse engineering. See the [integration guide](docs/CODE-SCANNING.md).
+
+## v0.4: Reviewed Forge JSON patching and exact rollback (experimental)
+
+For supported **Electron Forge 7.4+ JSON manifests** only, FEA can preview and apply a single bounded setting change (`packagerConfig.asar: true`) and restore the original manifest from a protected external backup. It does not execute project JS/TS configuration, apply Electron Fuse settings automatically, touch signed artifacts, or claim code encryption.
+
+```bash
+node src/cli.mjs protect preview ./my-forge-project --out ./forge-plan.json
+node src/cli.mjs protect apply ./my-forge-project --plan ./forge-plan.json --state ../private-fea-backups
+# Build, regression-test, sign and verify final release artifacts before distribution.
+node src/cli.mjs protect rollback ./my-forge-project --receipt ../private-fea-backups/fea-<id>/receipt.json
+npm run protect:demo
+```
+
+The apply step rechecks the source digest and refuses stale/tampered plans; rollback rejects drift, including changes made after applying. Backups must live **outside the project** to avoid accidentally committing secrets. Only use this against a trusted, static local worktree. **ASAR is packaging, not encryption or proof of reverse-engineering resistance.** See [documented limitations](docs/PROTECT-AUTOMATION.md).
 
 ## Quick start
 
@@ -147,10 +172,10 @@ This table describes **scope, not security superiority**. No cross-project bench
 - A successful scan does not prove that an app has no secrets or vulnerabilities. Client checks never replace server-side authorization.
 - Authenticity checks are not code encryption or protection against all local modifications.
 - Arbitrary EXE/MSI/DMG unpacking, automated protective code patches, real AI resistance scores and macOS signing checks are **not implemented**. Arena validates external run logs and scripted fixtures only; no live model execution is bundled.
-- **v0.2 is experimental**, not an independent security audit or certification. Validate supported artifact formats and failure modes before relying on it for a production gate.
+- **FEA remains experimental**, not an independent security audit or certification. Validate supported artifact formats and failure modes before relying on it for a production gate.
 
 ## Roadmap and contribution
 
-`v0.1` introduced resource scanning and CI gates. `v0.2` adds bounded ASAR inspection, Forge planning suggestions, and Windows Authenticode status checks. Next steps include more rigorous rule coverage, stable SARIF, validated build adapters, and authorized reproducible adversarial evaluation. See the [roadmap](docs/ROADMAP.md) and [threat model](docs/THREAT_MODEL.md).
+`v0.1` introduced resource scanning and CI gates. `v0.2` adds bounded ASAR inspection, Forge planning suggestions, and Windows Authenticode status checks. Experimental SARIF export and Code Scanning upload are now available. Next steps include more rigorous rule coverage, validated build adapters, and authorized reproducible adversarial evaluation. See the [roadmap](docs/ROADMAP.md) and [threat model](docs/THREAT_MODEL.md).
 
 Contributions of rules, synthetic fixtures, tests and format adapters are welcome—see [CONTRIBUTING.md](CONTRIBUTING.md). Licensed under [Apache-2.0](LICENSE); using FEA does not require you to open-source your proprietary application. FEA is independent of the REA and Trivy teams.

@@ -4,6 +4,7 @@ import path from 'node:path';
 import {scanAsar} from './asar.mjs';
 import {toSarif} from './sarif.mjs';
 import {planForge} from './protect.mjs';
+import {previewHardening,applyHardening,rollbackHardening} from './protect-apply.mjs';
 import {verifyAuthenticode} from './signature.mjs';
 import {loadArenaJson,compareArena,arenaMarkdown} from './arena.mjs';
 import {importExternalFiles} from './arena-import.mjs';
@@ -19,6 +20,9 @@ Usage:
   fea compare <before.json> <after.json> --out <comparison-dir>
   fea asar-scan <app.asar> --config .fea.json --out <report-dir>
   fea plan <electron-forge-project> --out <plan-dir>
+  fea protect preview <project-dir> --out <plan.json>
+  fea protect apply <project-dir> --plan <plan.json> --state <external-backups-dir>
+  fea protect rollback <project-dir> --receipt <receipt.json>
   fea signature <file.exe> --out <report-dir> [--thumbprint SHA1HEX]
   fea arena compare <baseline-run.json> <hardened-run.json> --suite <suite.json> --out <report-dir>
   fea arena import <trials.jsonl> --suite <suite.json> --descriptor <descriptor.json> --out <run.json>
@@ -32,7 +36,7 @@ function parse(argv) {
     const arg=argv[i];
     if(arg.startsWith('--')) {
       const name=arg.slice(2);
-      if(!['out','config','policy','profile','thumbprint','suite','descriptor','baseline','hardened','adapter','engine','i-own-artifacts','help'].includes(name) || Object.hasOwn(flags,name))throw Error('Invalid flag: '+arg);
+      if(!['out','config','policy','profile','thumbprint','suite','descriptor','baseline','hardened','adapter','engine','i-own-artifacts','plan','state','receipt','help'].includes(name) || Object.hasOwn(flags,name))throw Error('Invalid flag: '+arg);
       if(name==='help'||name==='i-own-artifacts'){flags[name]=true;continue;}
       if(!argv[i+1] || argv[i+1].startsWith('--')) throw Error('Missing value for '+arg);
       flags[name]=argv[++i];
@@ -89,6 +93,31 @@ export function run(args) {
       writeJson(path.join(flags.out,'plan.json'),plan);
       console.log('Wrote review-only plan: '+path.join(flags.out,'plan.json'));
       return plan.supported?0:2;
+    }
+    case 'protect': {
+      const [operation,project]=positional;
+      if(positional.length!==2)throw Error('protect requires preview/apply/rollback and project directory');
+      if(operation==='preview'){
+        if(!flags.out)throw Error('protect preview requires --out <plan.json>');
+        const result=previewHardening(project);
+        writeJson(flags.out,result);
+        console.log('Wrote reviewable, metadata-only Forge plan: '+flags.out);
+        return 0;
+      }
+      if(operation==='apply'){
+        if(!flags.plan||!flags.state)throw Error('protect apply requires --plan and external --state');
+        const plan=JSON.parse(fs.readFileSync(flags.plan,'utf8'));
+        const result=applyHardening(project,plan,flags.state);
+        console.log('Applied a bounded JSON setting change; receipt: '+result.receipt);
+        return 0;
+      }
+      if(operation==='rollback'){
+        if(!flags.receipt)throw Error('protect rollback requires --receipt');
+        const result=rollbackHardening(project,flags.receipt);
+        console.log('Restored original config: '+result.configFile);
+        return 0;
+      }
+      throw Error('protect supports preview, apply, rollback');
     }
     case 'signature': {
       if(positional.length!==1 || !flags.out) throw Error('signature requires <file.exe> --out');

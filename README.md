@@ -32,7 +32,7 @@ FEA 当前聚焦 Electron：**静态检查 → 出具脱敏证据 → 阻止不�
 | :--- | ---: | :--- |
 | **6 → 0** | 演示样本的扫描发现数 | 人为植入的暴露项在改进样本中被移除 |
 | **5 类** | FEA001–FEA005 | Source Map、私钥格式标记、内部配置、调试资源、测试资源 |
-| **33 / 33** | 本地自动化测试通过 | 包括 ASAR 异常输入、安全边界与跨平台降级的测试 |
+| **53 / 53** | 本地自动化测试通过 | 包括 ASAR 异常输入、安全边界与跨平台降级的测试 |
 | **2 种** | 目录 / `.asar` | 当前受限支持的 Electron 资源输入形态 |
 
 **数据来源与复现：** `npm test && npm run demo && npm run demo:check`。图表由 [`demo/check.mjs`](demo/check.mjs) 生成的 `comparison.json` 自动绘制，具体规则计数可在运行后的 `demo/generated/reports/comparison/comparison.json` 查看。脚本在 [`scripts/render-readme-chart.mjs`](scripts/render-readme-chart.mjs)。
@@ -50,7 +50,7 @@ flowchart LR
     D -->|未通过| F[Review / 改进构建]
     F --> A
     C --> G[Compare 前后差异报告]
-    H[Forge 配置] --> I[Protect: 只读建议]
+    H[Forge JSON 配置] --> I[Protect: 预览 / 修改 / 回滚]
     J[Windows EXE] --> K[Authenticode 状态检查]
 ```
 
@@ -61,7 +61,7 @@ flowchart LR
 | **Audit** | 扫描 Electron 资源目录和受限 ASAR、检测五类发布风险 | 不是通用 EXE/安装器解析器 |
 | **Verify** | 对脱敏报告执行策略检查，在 CI 中阻断失败样本 | 报告来源必须由可信构建流水线保证 |
 | **Compare** | 输出加固前后 JSON / Markdown 变化报告 | 不是 AI 攻击成功率测试 |
-| **Protect (Preview)** | 给 Electron Forge JSON 配置提供可审查建议 | 不自动改写配置，不执行目标项目代码 |
+| **Protect** | 对支持的 Forge JSON 文件提供只读建议、预览/应用 ASAR 选项、精确回滚 | 不执行未知配置、不代表软件已经加密或完成最终产物验证 |
 | **Signature (Preview)** | Windows 下通过系统工具检查 Authenticode 状态及可选签发者指纹 | 非 Windows 返回“未评估”；不负责签名证书申请 |
 
 ## Arena v0.3（实验性评测协议）
@@ -99,6 +99,35 @@ node src/cli.mjs arena execute --suite demo/arena-suite.json --baseline demo/gen
 ```
 
 **边界：** 内置适配器只观察自有合成资源，**没有调用 AI 模型**。执行器不是沙箱，不能信任陌生脚本；远程模型用量由适配器自报，FEA 无法独立核实费用和攻击成功条件。需要真实 Agent 评测时应提供独立审核的适配器、合法测试目标、隔离环境及受控预算。详见 [执行器文档](docs/ARENA-EXECUTOR.md)。
+
+## v0.3.3：SARIF 与 GitHub Code Scanning（实验性）
+
+FEA 可将**已完成覆盖检查的**资源扫描结果导出为 SARIF 2.1.0。GitHub Code Scanning 需要文件位置，因此所有告警定位到仓库内的 [`fea-sarif-anchor.md`](.github/fea-sarif-anchor.md)；这只是**隐私占位符，不是风险发生位置**。具体资源只能通过可信、私有的构建报告与哈希 ID 对照。
+
+```bash
+npm run demo && npm run demo:check && npm run sarif:demo
+node src/cli.mjs sarif demo/generated/reports/baseline/report.json --out demo/generated/reports/baseline/findings.sarif
+```
+
+- [GitHub Code Scanning 工作流](.github/workflows/fea-code-scanning.yml) 在主分支推送后自动上传**干净的自有合成样本**，用于验证上传链路；**不会对你的商业软件自动扫描，也不会发布测试样本中的假告警**。
+- 接入真实项目需要在受信任的 CI 中先构建 Electron 发布资源，再执行 `scan → verify → sarif`，确保仓库含有相同的锚点文件。`verify` 失败时仍应保留 SARIF 和报告供审查，但不能把扫描不完整当成安全通过。
+- SARIF 本身不构成真实性证明，不包含真实文件路径或代码片段。这个版本的规则定位无法在 GitHub 内跳转到具体发布文件。完整配置与限制见 [Code Scanning 指南](docs/CODE-SCANNING.md)。
+
+## v0.4：受控 Forge 配置加固与安全回滚（实验性）
+
+在 Electron Forge **7.4+ 的 JSON 配置**上，可以预览并应用唯一允许的改动：将 `packagerConfig.asar` 设置为 `true`。不会执行 `forge.config.js`、自动加入不兼容的 Electron Fuse、修改业务逻辑或修改已签名产物。完整流程保留审查和精确回滚：
+
+```bash
+node src/cli.mjs protect preview ./my-forge-project --out ./forge-plan.json
+node src/cli.mjs protect apply ./my-forge-project --plan ./forge-plan.json --state ../private-fea-backups
+# 完成正常打包、兼容性测试、签名与最终安装包验证后，才考虑正式发布
+node src/cli.mjs protect rollback ./my-forge-project --receipt ../private-fea-backups/fea-<id>/receipt.json
+npm run protect:demo
+```
+
+应用前将检查文件 SHA-256，拒绝过期计划、重复 JSON 键、链接文件与含 JS/TS 配置的项目。备份必须放在**项目目录之外**，避免提交私有构建配置。回滚时会检查修改后的文件哈希，若其他进程更改过配置则拒绝覆盖。仅支持受信任、扫描时不会并发修改的本地工作目录。
+
+**ASAR 不是加密，打开 ASAR 也不等于抵御逆向。** 本阶段不自动删除源映射，不自动配置完整性 Fuse，也不证明打包成功。详见 [受控配置修改说明](docs/PROTECT-AUTOMATION.md)。
 
 ## 快速开始
 
@@ -156,10 +185,10 @@ Windows 系统还可运行 `node src/cli.mjs signature ./my-app.exe --out ./audi
 - 扫描通过不等于没有秘密、没有漏洞、授权无法被绕过。客户端判断不能替代服务端授权。
 - 签名检查不等于加密代码；本工具也不会生成合法的 Windows/macOS 签名。
 - 当前不支持任意 EXE / MSI / DMG 分析、自动加壳或真实 AI 逆向能力评分；macOS 签名验证仍在路线图中。Arena v0.3 仅验证外部运行日志和提供脚本化样本。
-- **v0.2 属于实验实现**，不代表独立审计或安全认证；真实发布前请核验支持格式和异常边界。
+- **当前仍为实验版本**，不代表独立审计或安全认证；真实发布前请核验支持格式和异常边界。
 
 ## 下一步与贡献
 
-`v0.1` 提供资源扫描和 CI 门禁；`v0.2` 增加有边界的 ASAR 检查、Forge 审查建议和 Windows 签名状态；下一步将推进规则覆盖、稳定的 SARIF 输出、更多经验证的构建适配器与有授权的对抗评测。详见 [路线图](docs/ROADMAP.md) 和 [威胁模型](docs/THREAT_MODEL.md)。
+`v0.1` 提供资源扫描和 CI 门禁；`v0.2` 增加有边界的 ASAR 检查、Forge 审查建议和 Windows 签名状态；现已包含实验性 SARIF 生成与 Code Scanning 集成；下一步将推进规则覆盖、真实应用构建适配器与有授权的对抗评测。详见 [路线图](docs/ROADMAP.md) 和 [威胁模型](docs/THREAT_MODEL.md)。
 
 欢迎贡献规则、合成测试样本与适配器。请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。项目采用 [Apache-2.0](LICENSE) 协议，不要求使用者开源自己的商业软件。FEA 是独立项目，不受 REA 或 Trivy 团队背书。

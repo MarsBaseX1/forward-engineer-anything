@@ -1,4 +1,4 @@
-# FEA 版本路线图
+> **v0.4 experimental update (2026-10-21):** Implemented narrowly scoped, reviewable Electron Forge 7.4+ JSON `packagerConfig.asar` preview/apply/rollback with external backup and SHA-256 drift checks. This is a configuration edit only, **not** an anti-reversing guarantee. No automated Electron fuses, installer security validation, or complete patch support. See [PROTECT-AUTOMATION.md](PROTECT-AUTOMATION.md).\n\n# FEA 版本路线图
 
 原规划日期：2026-10-21。当前已经提供 v0.1、v0.2 和 v0.3 Arena 日志评测的**部分实验性实现**；下述是目标范围和验收方向，并非全部已交付。未交付项包含自动加固补丁、macOS 签名验证、完整安装包解析、SARIF 与经过独立验证的真实 AI 对抗评测；v0.3.2 已有受控本地适配器执行器，内置样本仍为合成演示，尚不能作为真实 AI 逆向评测证据；请以 [IMPLEMENTATION.md](../IMPLEMENTATION.md) 为实际支持边界。
 
