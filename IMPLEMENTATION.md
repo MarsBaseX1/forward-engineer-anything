@@ -1,3 +1,7 @@
+# FEA v0.3 experimental Arena evaluation
+
+The `arena compare` command consumes **existing authorized trial logs** and checks task/seed pairing, identical model/tool/environment, budget, minimum 10 valid trials, and opaque artifact digests. See [Arena protocol](docs/ARENA.md). `npm run arena:demo` only runs a deterministic fixture observer; it makes no AI/model calls and does not test real reverse-engineering resistance.
+
 # FEA v0.2 experimental capabilities
 
 The v0.1 resource-directory scanner remains available. v0.2 adds **bounded read-only ASAR inspection**, **review-only Electron Forge planning**, and **Windows-only Authenticode status inspection**. It does not guarantee confidentiality or tamper resistance and has not yet been independently security audited. This release does **not** apply Forge changes, create signatures, parse installers, inspect Mach-O or notarization, or run reverse-engineering benchmarks.
