@@ -22,6 +22,18 @@ AI 辅助逆向（如 [REA](https://github.com/morluto/rea)）正在降低分析
 
 FEA 当前聚焦 Electron：**静态检查 → 出具脱敏证据 → 阻止不合格发布 → 比较改进效果**。无需云模型、API Key 或付费服务即可运行扫描和演示。详细防护策略见 [ANTI-REA-HARDENING.md](docs/ANTI-REA-HARDENING.md)。
 
+## v0.4.3：发布可信性检查（实验性）
+
+FEA 新增**发布文件 SHA-256 清单**、Windows **Authenticode 签名与预期证书指纹核对**、macOS **codesign / Team ID / Gatekeeper / 已装订公证票据检查**。受控 CI 使用未签名样本验证“必须拒绝”，并非使用真实发布证书完成了正向验证。MSI、DMG、PKG 目前仅计算不透明文件摘要，**不解析安装包内部文件**。
+
+```bash
+node src/cli.mjs release manifest ./dist/MyProduct.exe --out ./.fea/manifest.json
+# 在原生 Windows 上，需要指定你实际发布者的证书 SHA-1 指纹：
+node src/cli.mjs release publisher ./dist/MyProduct.exe --platform win32 --thumbprint <40位证书指纹> --out ./.fea/trust.json
+```
+
+详见 [发布可信性验证说明](docs/RELEASE-TRUST.md)，原始品牌图标 `assets/fea-icon.png` 未改动。
+
 ## 可复现的关键数据
 
 <div align="center">
