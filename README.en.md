@@ -1,4 +1,7 @@
 <div align="center">
+  <!-- Original FEA identity, preserved byte-for-byte as assets/fea-icon.png. -->
+  <img src="assets/fea-icon.png" alt="Original FEA teal shield logo" width="128" height="128" />
+
   <img src="assets/fea-hero.svg" alt="FEA — Forward Engineer Anything: Ship less. Prove more." width="100%" />
 
   <br />
@@ -29,7 +32,7 @@ FEA currently focuses on the Electron release workflow: **audit → sanitized ev
 | :--- | ---: | :--- |
 | **6 → 0** | Synthetic demo findings | Deliberately planted exposures removed in the improved fixture |
 | **5 classes** | FEA001–FEA005 | Source maps, private-key markers, internal config, debug assets, test assets |
-| **15 / 15** | Local automated tests passed | Including bounded ASAR parsing, malformed inputs and explicit fallback behavior |
+| **20 / 20** | Local automated tests passed | Including bounded ASAR parsing, malformed inputs and explicit fallback behavior |
 | **2 inputs** | Resource tree / `.asar` | Currently scoped Electron release-resource forms |
 
 **Reproduce:** `npm test && npm run demo && npm run demo:check`. The chart is generated from `demo/generated/reports/comparison/comparison.json` by [`scripts/render-readme-chart.mjs`](scripts/render-readme-chart.mjs).
@@ -60,6 +63,17 @@ flowchart LR
 | **Compare** | Before/after JSON + Markdown | Not AI attacker-success benchmarking |
 | **Protect (preview)** | Review-only Electron Forge JSON configuration advice | Never rewrites configuration or executes target project code |
 | **Signature (preview)** | Windows Authenticode status and optional expected signer thumbprint | Returns "unassessed" elsewhere; does not sign files |
+
+## Arena v0.3 (experimental evaluation protocol)
+
+Arena now accepts **authorized, pre-recorded paired trial logs** and validates comparable tasks, pinned engine, budgets and seeds. It produces success, timeout and cost summaries. The bundled demo is a **scripted synthetic fixture**, **not AI reverse engineering** and not evidence of resistance.
+
+```bash
+npm run demo && npm run demo:check && npm run arena:demo
+node src/cli.mjs arena compare demo/generated/reports/arena/baseline.json demo/generated/reports/arena/hardened.json --suite demo/arena-suite.json --out demo/generated/reports/arena/manual
+```
+
+[Evaluation protocol and limits](docs/ARENA.md). The original brand mark remains unchanged at `assets/fea-icon.png`.
 
 ## Quick start
 
@@ -107,7 +121,7 @@ This table describes **scope, not security superiority**. No cross-project bench
 - Client-distributed code can still be inspected, modified or reimplemented. **ASAR is not an encryption boundary.**
 - A successful scan does not prove that an app has no secrets or vulnerabilities. Client checks never replace server-side authorization.
 - Authenticity checks are not code encryption or protection against all local modifications.
-- Arbitrary EXE/MSI/DMG unpacking, automated protective code patches, AI resistance scores, macOS signing checks and Arena benchmarking are **not implemented**.
+- Arbitrary EXE/MSI/DMG unpacking, automated protective code patches, real AI resistance scores and macOS signing checks are **not implemented**. Arena v0.3 evaluates external run logs and scripted fixtures only.
 - **v0.2 is experimental**, not an independent security audit or certification. Validate supported artifact formats and failure modes before relying on it for a production gate.
 
 ## Roadmap and contribution
