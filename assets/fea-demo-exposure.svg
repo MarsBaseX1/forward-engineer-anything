@@ -1,14 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="694" viewBox="0 0 1000 694" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="742" viewBox="0 0 1000 742" role="img" aria-labelledby="title desc">
 <title id="title">FEA synthetic Electron demo, before versus after security hygiene</title>
-<desc id="desc">Findings fall from 10 in the deliberately vulnerable baseline to 0 in the improved fixture, across 8 checked release-risk categories. This is not a reverse-engineering resistance score.</desc>
+<desc id="desc">Findings fall from 11 in the deliberately vulnerable baseline to 0 in the improved fixture, across 9 checked release-risk categories. This is not a reverse-engineering resistance score.</desc>
 <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#0b1d28"/><stop offset="1" stop-color="#122f37"/></linearGradient><linearGradient id="a" x2="1"><stop stop-color="#65f2d3"/><stop offset="1" stop-color="#28bfa2"/></linearGradient></defs>
-<rect width="1000" height="694" rx="28" fill="url(#bg)"/>
+<rect width="1000" height="742" rx="28" fill="url(#bg)"/>
 <text x="48" y="57" font-size="15" font-weight="700" letter-spacing="3" fill="#78e4cc">VERIFIABLE DEMO DATA</text>
 <text x="48" y="100" font-size="29" font-weight="750" fill="#f3fafb">Release exposure: before / after</text>
 <text x="48" y="132" font-size="14" fill="#acc1c6">Deliberately vulnerable Electron test fixture · local resource scan</text>
 <rect x="48" y="155" width="272" height="70" rx="14" fill="#243a43"/>
 <text x="67" y="184" font-size="13" fill="#e5b0a3">Baseline findings</text>
-<text x="67" y="212" font-size="32" font-weight="750" fill="#f48b77">10</text>
+<text x="67" y="212" font-size="32" font-weight="750" fill="#f48b77">11</text>
 <path d="M341 187 L390 187" stroke="#75dcca" stroke-width="3"/><path d="M380 179 L392 187 L380 195" fill="none" stroke="#75dcca" stroke-width="3"/>
 <rect x="411" y="155" width="272" height="70" rx="14" fill="#183d41"/>
 <text x="430" y="184" font-size="13" fill="#abe4d6">Improved fixture</text>
@@ -62,7 +62,13 @@
     <rect x="278" y="595" width="0" height="6" rx="4" fill="#5cdec2"/>
     <text x="368" y="590" fill="#ffe1d9" font-size="13" font-weight="700">1</text>
     <text x="630" y="590" fill="#78e4cc" font-size="14" font-weight="700">→ 0</text>
-<line x1="48" x2="952" y1="634" y2="634" stroke="#38515a"/>
-<text x="48" y="661" font-size="13" fill="#9fb8bd">Source: demo/generated/reports/comparison/comparison.json</text>
-<text x="48" y="680" font-size="12" fill="#91aeb4">10 → 0 describes discovered synthetic release findings, NOT inability to reverse engineer code.</text>
+<text x="48" y="640" font-size="14" font-weight="600" fill="#d8e6e7">Client data exposure</text>
+    <rect x="278" y="623" width="320" height="16" rx="5" fill="#203944"/>
+    <rect x="278" y="623" width="80" height="16" rx="5" fill="#f48b77"/>
+    <rect x="278" y="643" width="0" height="6" rx="4" fill="#5cdec2"/>
+    <text x="368" y="638" fill="#ffe1d9" font-size="13" font-weight="700">1</text>
+    <text x="630" y="638" fill="#78e4cc" font-size="14" font-weight="700">→ 0</text>
+<line x1="48" x2="952" y1="682" y2="682" stroke="#38515a"/>
+<text x="48" y="709" font-size="13" fill="#9fb8bd">Source: demo/generated/reports/comparison/comparison.json</text>
+<text x="48" y="728" font-size="12" fill="#91aeb4">11 → 0 describes discovered synthetic release findings, NOT inability to reverse engineer code.</text>
 </svg>
