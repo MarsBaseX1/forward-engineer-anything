@@ -9,7 +9,7 @@
     "maxDurationMs": 30000
   },
   "policy": {
-    "block": ["FEA001", "FEA002", "FEA003", "FEA004", "FEA005"],
+    "block": ["FEA001", "FEA002", "FEA003", "FEA004", "FEA005", "FEA006", "FEA007", "FEA008"],
     "exceptions": []
   }
 }
