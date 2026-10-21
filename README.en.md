@@ -22,6 +22,12 @@ AI-assisted analysis (e.g. [REA](https://github.com/morluto/rea)) lowers the bar
 
 FEA currently focuses on the Electron release workflow: **audit → sanitized evidence → CI policy gate → before/after comparison**. The scanner and demo run without a cloud model, paid account, or API key. See [ANTI-REA-HARDENING.md](docs/ANTI-REA-HARDENING.md).
 
+## v0.4.3: Publisher & release provenance (experimental)
+
+The new **bounded SHA-256 release manifest** and **native publisher checks** require an exact Windows Authenticode signer certificate thumbprint or a macOS Team ID, Gatekeeper acceptance, and a stapled notarization ticket. Native CI only tests that an unsigned, owned fixture **cannot pass**; it does not contain real publisher signing credentials. MSI / DMG / PKG can be hashed as **opaque files**, not parsed or certified.
+
+See the [release-trust guide](docs/RELEASE-TRUST.md). The original brand icon `assets/fea-icon.png` is unchanged.
+
 ## Reproducible demo data
 
 <div align="center">
