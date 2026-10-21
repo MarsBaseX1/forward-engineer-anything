@@ -25,19 +25,19 @@ FEA currently focuses on the Electron release workflow: **audit → sanitized ev
 ## Reproducible demo data
 
 <div align="center">
-  <img src="assets/fea-demo-exposure.svg" alt="On FEA's own synthetic Electron fixture, detected release-exposure findings fall from multiple to 0 across 9 categories." width="95%" />
+  <img src="assets/fea-demo-exposure.svg" alt="On FEA's own synthetic Electron fixture, detected release-exposure findings fall from 11 to 0 across 9 categories." width="95%" />
 </div>
 
 | Metric | Reproducible result | What it means |
 | :--- | ---: | :--- |
-| **Multiple → 0** | Synthetic demo findings | Deliberately planted exposures removed in the improved fixture |
+| **11 → 0** | Synthetic demo findings | Deliberately planted exposures removed in the improved fixture |
 | **9 classes** | FEA001–FEA009 | Source maps, private-key markers, internal config, debug assets, test assets, client auth, hardcoded secrets, unobfuscated logic, client data exposure |
-| **Multiple** | Local automated tests passed | Including bounded ASAR parsing, malformed inputs and explicit fallback behavior |
+| **77 / 77** | Automated tests passed | Including bounded ASAR parsing, malformed inputs and explicit fallback behavior |
 | **2 inputs** | Resource tree / `.asar` | Currently scoped Electron release-resource forms |
 
 **Reproduce:** `npm test && npm run demo && npm run demo:check`. The chart is generated from `demo/generated/reports/comparison/comparison.json` by [`scripts/render-readme-chart.mjs`](scripts/render-readme-chart.mjs).
 
-> ⚠️ **These are synthetic fixture numbers, not an independent security benchmark.** Findings falling from multiple to 0 means fewer observable release-hygiene findings on the same sample. It does not measure resistance to reverse engineering or guarantee security.
+> ⚠️ **These are synthetic fixture numbers, not an independent security benchmark.** 11 → 0 synthetic findings means fewer observable release-hygiene findings on the same sample. It does not measure resistance to reverse engineering or guarantee security.
 
 ## How it works
 
@@ -197,3 +197,9 @@ This table describes **scope, not security superiority**. No cross-project bench
 `v0.1` introduced resource scanning and CI gates. `v0.2` adds bounded ASAR inspection, Forge planning suggestions, and Windows Authenticode status checks. Experimental SARIF export and Code Scanning upload are now available. Next steps follow [ANTI-REA-HARDENING.md](docs/ANTI-REA-HARDENING.md): expanded rule coverage, build hardening, server-side migration, and authorized adversarial evaluation. See the [roadmap](docs/ROADMAP.md) and [threat model](docs/THREAT_MODEL.md).
 
 Contributions of rules, synthetic fixtures, tests and format adapters are welcome—see [CONTRIBUTING.md](CONTRIBUTING.md). Licensed under [Apache-2.0](LICENSE); using FEA does not require you to open-source your proprietary application. FEA is independent of the REA and Trivy teams.
+
+## v0.4.2: native Forge package verification
+
+A dedicated CI matrix installs pinned versions of Electron and Forge on **native Windows and macOS Intel runners**, builds our **owned Electron GUI fixture**, reads the **actual packaged binary fuse wire** using `@electron/fuses`, compares the ASAR header SHA-256 with the embedded **Windows PE resource** or **macOS Info.plist** hash, and launches the **packaged GUI** to verify a DOM marker and process exit.
+
+This is stronger evidence than declaration-only compatibility checks, but the fixture is **unsigned**. It does not validate publisher certificates, notarization, installers, third-party software or resistance to reverse engineering. See [native verification guide](docs/NATIVE-PACKAGE.md) and [CI workflow](.github/workflows/fea-native-package.yml).

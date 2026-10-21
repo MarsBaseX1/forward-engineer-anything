@@ -1,3 +1,7 @@
+# v0.4.2 real native Electron Forge packaging and GUI smoke
+
+The new `demo/real-electron-app/` is an owned Electron Forge fixture with pinned dependencies. The separate native GitHub Actions matrix builds it on Windows x64 and macOS x64. It checks *actual binary fuse bits*, embedded ASAR header integrity metadata, and real packaged renderer startup. See `docs/NATIVE-PACKAGE.md`. No code signing, notarization or installer validation is claimed.
+
 # FEA v0.4.1 (experimental): Fuse prerequisite + unpacked artifact checks
 
 Static release inspection and owned-app startup contract demo have been added. See [Release Readiness](docs/RELEASE-READINESS.md). These tools do not build packages, run a real GUI, verify embedded fuses or validate platform signatures.

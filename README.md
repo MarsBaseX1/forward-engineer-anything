@@ -25,19 +25,19 @@ FEA 当前聚焦 Electron：**静态检查 → 出具脱敏证据 → 阻止不�
 ## 可复现的关键数据
 
 <div align="center">
-  <img src="assets/fea-demo-exposure.svg" alt="自有合成 Electron 演示样本：9 类规则中，基线发现多项，改进样本发现 0 项" width="95%" />
+  <img src="assets/fea-demo-exposure.svg" alt="自有合成 Electron 演示样本：9 类规则中，基线发现 11 项，改进样本发现 0 项" width="95%" />
 </div>
 
 | 指标 | 本仓库可复现结果 | 代表什么 |
 | :--- | ---: | :--- |
-| **多项 → 0** | 演示样本的扫描发现数 | 人为植入的暴露项在改进样本中被移除 |
+| **11 → 0** | 演示样本的扫描发现数 | 人为植入的暴露项在改进样本中被移除 |
 | **9 类** | FEA001–FEA009 | Source Map、私钥、内部配置、调试资源、测试资源、客户端授权、硬编码密钥、未混淆逻辑、客户端数据暴露 |
-| **多项** | 本地自动化测试通过 | 包括 ASAR 异常输入、安全边界与跨平台降级的测试 |
+| **77 / 77** | 自动化测试通过 | 包括 ASAR 异常输入、安全边界与跨平台降级的测试 |
 | **2 种** | 目录 / `.asar` | 当前受限支持的 Electron 资源输入形态 |
 
 **数据来源与复现：** `npm test && npm run demo && npm run demo:check`。图表由 [`demo/check.mjs`](demo/check.mjs) 生成的 `comparison.json` 自动绘制，具体规则计数可在运行后的 `demo/generated/reports/comparison/comparison.json` 查看。脚本在 [`scripts/render-readme-chart.mjs`](scripts/render-readme-chart.mjs)。
 
-> ⚠️ **演示数据不是商业软件安全测评。** 发现数从多项降到 0 只反映同一合成样本中可观察的信息暴露项变化，不代表逆向破解概率下降 100%、真实产品没有漏洞，或对 AI 逆向具备可量化抵抗力。
+> ⚠️ **演示数据不是商业软件安全测评。** 11 → 0 只反映同一合成样本中可观察的信息暴露项变化，不代表逆向破解概率下降 100%、真实产品没有漏洞，或对 AI 逆向具备可量化抵抗力。
 
 ## FEA 如何工作
 
@@ -209,3 +209,9 @@ Windows 系统还可运行 `node src/cli.mjs signature ./my-app.exe --out ./audi
 `v0.1` 提供资源扫描和 CI 门禁；`v0.2` 增加有边界的 ASAR 检查、Forge 审查建议和 Windows 签名状态；现已包含实验性 SARIF 生成与 Code Scanning 集成。下一步将按 [ANTI-REA-HARDENING.md](docs/ANTI-REA-HARDENING.md) 推进规则覆盖、构建加固、服务端迁移与有授权的对抗评测。详见 [路线图](docs/ROADMAP.md) 和 [威胁模型](docs/THREAT_MODEL.md)。
 
 欢迎贡献规则、合成测试样本与适配器。请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。项目采用 [Apache-2.0](LICENSE) 协议，不要求使用者开源自己的商业软件。FEA 是独立项目，不受 REA 或 Trivy 团队背书。
+
+## v0.4.2：真实 Forge 打包验证
+
+新工作流在 **Windows 与 macOS Intel 原生 GitHub runner** 上安装固定版本的 Electron/Forge，**实际打包**本仓库自有的 Electron GUI 演示应用。使用 `@electron/fuses` 读取**打包二进制**中的 Fuse 位（包括 `OnlyLoadAppFromAsar`、`EnableEmbeddedAsarIntegrityValidation`），并将打包 ASAR 头部 SHA-256 与 **Windows PE `INTEGRITY/ELECTRONASAR` 资源**或 **macOS `Info.plist`**中的嵌入值对比。最后启动真正的打包应用，验证窗口中的 DOM 标记与进程退出结果。
+
+这与之前的合成启动测试不同：现在对**实际打包产物**取证。不过 CI 演示仍是**未签名、自有样本**，不代表商业应用已经签名、公证、通过 SmartScreen 或无法被逆向。详情见 [真实打包验证说明](docs/NATIVE-PACKAGE.md) 和 [原生 CI 工作流](.github/workflows/fea-native-package.yml)。

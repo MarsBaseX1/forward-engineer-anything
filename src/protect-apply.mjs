@@ -95,8 +95,21 @@ export function previewHardening(project){
 }
 function privateExternalState(root,state){
   if(typeof state!=='string'||!state.trim())throw Error('PROTECT_STATE_DIRECTORY_REQUIRED');
-  const directory=path.resolve(state);
+  // Resolve OS-managed ancestors (e.g. macOS /var -> /private/var) before
+  // testing containment. A textual path comparison across aliases is unsafe.
+  const specified=path.resolve(state);
+  let existing=specified;
+  while(!fs.existsSync(existing)){
+    const next=path.dirname(existing);
+    if(next===existing)throw Error('PROTECT_STATE_PATH_INVALID');
+    existing=next;
+  }
+  // A user-selected state directory itself must not be an existing symlink.
+  if(fs.lstatSync(specified,{throwIfNoEntry:false})?.isSymbolicLink())throw Error('PROTECT_STATE_SYMLINK');
+  const directory=path.resolve(fs.realpathSync(existing),path.relative(existing,specified));
   if(inside(root,directory))throw Error('PROTECT_STATE_MUST_BE_OUTSIDE_PROJECT');
+  // Reject symlinks in the canonicalized directory chain. We assume a trusted,
+  // non-concurrently modified build host; this is not a sandbox for hostile FS.
   let cursor=directory;
   while(true){
     try {if(fs.lstatSync(cursor).isSymbolicLink())throw Error('PROTECT_STATE_SYMLINK');}

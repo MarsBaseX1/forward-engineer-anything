@@ -1,0 +1,55 @@
+name: FEA native Electron Forge package verification
+on:
+  pull_request:
+    paths:
+      - 'src/real-package.mjs'
+      - 'demo/real-electron-app/**'
+      - 'scripts/verify-real-electron.mjs'
+      - 'test/real-package.test.mjs'
+      - '.github/workflows/fea-native-package.yml'
+      - 'package.json'
+  push:
+    branches: [main]
+    paths:
+      - 'src/real-package.mjs'
+      - 'demo/real-electron-app/**'
+      - 'scripts/verify-real-electron.mjs'
+      - 'test/real-package.test.mjs'
+      - '.github/workflows/fea-native-package.yml'
+      - 'package.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fea-native-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  native-package:
+    name: Forge ${{ matrix.os }} (real binary and GUI)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify core test suite
+        run: npm test
+      - name: Install exact-version Forge fixture dependencies
+        run: npm install --no-audit --no-fund --prefix demo/real-electron-app
+      - name: Actually package Electron app with Forge and both ASAR fuses
+        run: npm run package --prefix demo/real-electron-app -- --arch=x64
+      - name: Verify packaged fuse wire, PE/plist ASAR header digest and running GUI
+        run: npm run native:verify
+      - name: Retain small sanitized verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fea-native-proof-${{ matrix.os }}
+          path: demo/generated/reports/real-electron/
+          if-no-files-found: ignore
+          retention-days: 7

@@ -92,7 +92,14 @@ export function inspectUnpackedRelease(folder,{platform,config,expectedAsarSha25
   if(!top.isDirectory()||top.isSymbolicLink())throw Error('RELEASE_ROOT_UNSAFE');
   const root=fs.realpathSync(folder);
   if(out){
-    const dest=path.resolve(out);
+    const requested=path.resolve(out);
+    let parent=requested;
+    while(!fs.existsSync(parent)){
+      const next=path.dirname(parent);
+      if(next===parent)throw Error('RELEASE_OUTPUT_PATH_INVALID');
+      parent=next;
+    }
+    const dest=path.resolve(fs.realpathSync(parent),path.relative(parent,requested));
     if(dest===root||dest.startsWith(root+path.sep))throw Error('RELEASE_REPORT_MUST_BE_OUTSIDE_ARTIFACT');
   }
   const relative=platform==='win32'?'resources/app.asar':'Contents/Resources/app.asar';
