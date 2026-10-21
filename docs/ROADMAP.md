@@ -1,10 +1,10 @@
-> **v0.4 experimental update (2026-10-21):** Implemented narrowly scoped, reviewable Electron Forge 7.4+ JSON `packagerConfig.asar` preview/apply/rollback with external backup and SHA-256 drift checks. This is a configuration edit only, **not** an anti-reversing guarantee. No automated Electron fuses, installer security validation, or complete patch support. See [PROTECT-AUTOMATION.md](PROTECT-AUTOMATION.md).
+> **v0.4 experimental update (2026-10-21):** Implemented narrowly scoped, reviewable Electron Forge 7.4+ JSON `packagerConfig.asar` preview/apply/rollback with external backup and SHA-256 drift checks. Extended to recommend integrity Fuses. This is a configuration edit only, **not** an anti-reversing guarantee. See [PROTECT-AUTOMATION.md](PROTECT-AUTOMATION.md).
 
-> **防护演进方向（2026-10-21）：** 新增 [ANTI-REA-HARDENING.md](ANTI-REA-HARDENING.md)，明确将 FEA 从发布卫生检查演进为提高 REA 类 AI 辅助逆向成本的保护工程框架。不承诺无法逆向，而是系统性抬高分析、篡改与复现成本。
+> **防护演进方向（2026-10-21）：** 新增 [ANTI-REA-HARDENING.md](ANTI-REA-HARDENING.md)，明确将 FEA 从发布卫生检查演进为提高 REA 类 AI 辅助逆向成本的保护工程框架。不承诺无法逆向，而是系统性抬高分析、篡改与复现成本。短期与中期骨架已完成。
 
 # FEA 版本路线图
 
-原规划日期：2026-10-21。当前已经提供 v0.1、v0.2 和 v0.3 Arena 日志评测的**部分实验性实现**；下述是目标范围和验收方向，并非全部已交付。未交付项包含自动加固补丁、macOS 签名验证、完整安装包解析、SARIF 与经过独立验证的真实 AI 对抗评测；v0.3.2 已有受控本地适配器执行器，内置样本仍为合成演示，尚不能作为真实 AI 逆向评测证据；请以 [IMPLEMENTATION.md](../IMPLEMENTATION.md) 为实际支持边界。
+原规划日期：2026-10-21。当前已经提供 v0.1、v0.2 和 v0.3 Arena 日志评测的**部分实验性实现**；下述是目标范围和验收方向，并非全部已交付。未交付项包含自动加固补丁、macOS 签名验证、完整安装包解析、经过独立验证的真实 AI 对抗评测；v0.3.2 已有受控本地适配器执行器，内置样本仍为合成演示，尚不能作为真实 AI 逆向评测证据；请以 [IMPLEMENTATION.md](../IMPLEMENTATION.md) 为实际支持边界。
 
 详细防护策略见 [ANTI-REA-HARDENING.md](ANTI-REA-HARDENING.md)。
 
@@ -77,9 +77,9 @@ Windows 使用可信平台工具验证 Authenticode；macOS 在 macOS 主机验�
 
 在现有版本基础上，按以下优先级推进（详见 [ANTI-REA-HARDENING.md](ANTI-REA-HARDENING.md)）：
 
-1. **短期**：扩展 Audit 规则（未混淆逻辑、硬编码敏感信息、客户端授权判断）；完善 Forge ASAR integrity 与 Electron Fuses 自动化。
-2. **中期**：可选混淆适配器（javascript-obfuscator / bytenode 等）+ 服务端迁移建议；真实 REA / Ghidra 适配器接入 Arena。
-3. **长期**：原生适配器、运行时防护插件接口、可复现公开对抗基准。
+1. **短期**（已完成）：扩展 Audit 规则（FEA006–FEA009：未混淆逻辑、硬编码敏感信息、客户端授权判断、客户端数据暴露）；完善 Forge ASAR integrity 与 Electron Fuses 自动化。
+2. **中期**（骨架已完成）：可选混淆建议 + 服务端迁移建议生成器；REA 风格适配器对接文档与骨架（`demo/rea-observer.mjs`）。
+3. **长期**（路线图）：原生适配器、运行时防护插件接口、可复现公开对抗基准。
 
 ## GitHub 发布准备
 
