@@ -14,13 +14,13 @@
   **[English](README.en.md) · [5 分钟上手](#快速开始) · [真实演示数据](#可复现的关键数据) · [安全边界](#我们不承诺什么) · [参与贡献](CONTRIBUTING.md)**
 </div>
 
-> **FEA（Forward Engineer Anything）** 是面向桌面软件开发者的开源发布安全检查工具。它帮助团队在交付 Windows / macOS 应用前，发现不必要的敏感资源暴露、建立可重复的 CI 门禁，并对比加固前后的结果。**目标是提高分析与篡改成本，不是承诺软件无法逆向。**
+> **FEA（Forward Engineer Anything）** 是面向桌面软件开发者的开源**保护工程框架**。它帮助团队在交付 Windows / macOS 应用前，发现不必要的敏感资源暴露、建立可重复的 CI 门禁、规划加固并验证效果。**目标是提高 REA 类 AI 辅助逆向与篡改的成本，不是承诺软件无法逆向。**
 
 ### 为什么需要 FEA？
 
-AI 辅助逆向正在降低分析已发布软件的门槛。与其发布后再尝试隐藏一切，不如在构建阶段先回答三个问题：**客户端带走了什么？哪些调整确实减少了暴露？下一次发布是否让风险重新出现？**
+AI 辅助逆向（如 [REA](https://github.com/morluto/rea)）正在降低分析已发布软件的门槛。与其发布后再尝试隐藏一切，不如在构建阶段先回答三个问题：**客户端带走了什么？哪些调整确实减少了暴露？下一次发布是否让风险重新出现？**
 
-FEA 当前聚焦 Electron：**静态检查 → 出具脱敏证据 → 阻止不合格发布 → 比较改进效果**。无需云模型、API Key 或付费服务即可运行扫描和演示。
+FEA 当前聚焦 Electron：**静态检查 → 出具脱敏证据 → 阻止不合格发布 → 比较改进效果**。无需云模型、API Key 或付费服务即可运行扫描和演示。详细防护策略见 [ANTI-REA-HARDENING.md](docs/ANTI-REA-HARDENING.md)。
 
 ## 可复现的关键数据
 
@@ -173,8 +173,8 @@ Windows 系统还可运行 `node src/cli.mjs signature ./my-app.exe --out ./audi
 
 | 工具 | 主要目的 | 与 FEA 的关系 |
 | :--- | :--- | :--- |
-| **FEA**（本项目） | 交付前发现 Electron 资源暴露、验证发布策略、比较改动 | 关注**开发者的发布阶段** |
-| [REA — Reverse Engineer Anything](https://github.com/morluto/rea) | 辅助分析已经发布的软件 | 帮助研究软件；与 FEA 独立、无隶属关系 |
+| **FEA**（本项目） | 交付前发现 Electron 资源暴露、验证发布策略、比较改动，并演进为提高逆向成本的保护框架 | 关注**开发者的发布与保护阶段** |
+| [REA — Reverse Engineer Anything](https://github.com/morluto/rea) | 辅助分析已经发布的软件 | 帮助研究软件；与 FEA 独立、无隶属关系；FEA 目标是抬高其分析成本 |
 | [Trivy](https://github.com/aquasecurity/trivy) | 广泛扫描镜像、文件系统、依赖漏洞、配置与秘密 | 覆盖面更广；FEA 专注桌面发布资源与可复验门禁 |
 
 以上是**用途区分，不是性能排名**；没有开展跨项目的相同样本、相同预算安全基准测试。
@@ -189,6 +189,6 @@ Windows 系统还可运行 `node src/cli.mjs signature ./my-app.exe --out ./audi
 
 ## 下一步与贡献
 
-`v0.1` 提供资源扫描和 CI 门禁；`v0.2` 增加有边界的 ASAR 检查、Forge 审查建议和 Windows 签名状态；现已包含实验性 SARIF 生成与 Code Scanning 集成；下一步将推进规则覆盖、真实应用构建适配器与有授权的对抗评测。详见 [路线图](docs/ROADMAP.md) 和 [威胁模型](docs/THREAT_MODEL.md)。
+`v0.1` 提供资源扫描和 CI 门禁；`v0.2` 增加有边界的 ASAR 检查、Forge 审查建议和 Windows 签名状态；现已包含实验性 SARIF 生成与 Code Scanning 集成。下一步将按 [ANTI-REA-HARDENING.md](docs/ANTI-REA-HARDENING.md) 推进规则覆盖、构建加固、服务端迁移与有授权的对抗评测。详见 [路线图](docs/ROADMAP.md) 和 [威胁模型](docs/THREAT_MODEL.md)。
 
 欢迎贡献规则、合成测试样本与适配器。请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。项目采用 [Apache-2.0](LICENSE) 协议，不要求使用者开源自己的商业软件。FEA 是独立项目，不受 REA 或 Trivy 团队背书。
