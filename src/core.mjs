@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
-export const VERSION = '0.4.1-alpha.1';
+export const VERSION = '0.4.2-alpha.1';
 export const RULES = Object.freeze({
   FEA001: {title:'Source map shipped', severity:'high'},
   FEA002: {title:'Potential private key in release', severity:'critical'},
@@ -11,7 +11,8 @@ export const RULES = Object.freeze({
   FEA005: {title:'Development or test asset in release', severity:'medium'},
   FEA006: {title:'Client-side authorization or license judgment', severity:'high'},
   FEA007: {title:'Hardcoded secret or credential candidate', severity:'high'},
-  FEA008: {title:'Unobfuscated business logic indicators', severity:'medium'}
+  FEA008: {title:'Unobfuscated business logic indicators', severity:'medium'},
+  FEA009: {title:'Client-side sensitive data exposure', severity:'high'}
 });
 export const DEFAULT_CONFIG = Object.freeze({
   schemaVersion:1,
@@ -32,6 +33,7 @@ const devAsset = /(?:^|\/)(?:__tests__|__mocks__|tests?|fixtures|e2e)(?:\/|$)|\.
 const clientAuth = /\b(?:isPremium|isPro|isLicensed|hasLicense|checkLicense|validateLicense|licenseValid|authCheck|isAuthenticated|hasValidKey)\b/i;
 const hardcodedSecret = /(?:api[_-]?key|secret[_-]?key|access[_-]?token|auth[_-]?token)\s*[:=]\s*['"][A-Za-z0-9_\-]{16,}['"]/i;
 const unobfuscated = /\b(?:TODO|FIXME|calculatePrice|validateUser|processPayment|getUserPlan|checkSubscription)\b/i;
+const dataExposure = /\b(?:window\.__[A-Z0-9_]+__|__APOLLO_STATE__|__NEXT_DATA__|__INITIAL_STATE__|localStorage\.setItem\s*\(\s*['"](?:token|auth|license|session)|sessionStorage\.setItem\s*\(\s*['"](?:token|auth))\b/i;
 
 // Shared file rule engine for resource directories and bounded ASAR entries.
 // This never executes source code or returns raw candidate-secret content.
@@ -55,6 +57,7 @@ export function inspectAsset(relative, bytes) {
       if (clientAuth.test(content)) found.add('FEA006');
       if (hardcodedSecret.test(content)) found.add('FEA007');
       if (unobfuscated.test(content)) found.add('FEA008');
+      if (dataExposure.test(content)) found.add('FEA009');
     }
   }
   return {ruleIds:[...found], textInspected, opaqueText};
