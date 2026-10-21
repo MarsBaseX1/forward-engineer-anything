@@ -1,0 +1,13 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {createMcpHandler} from '../src/mcp.mjs';
+const report='demo/generated/reports/hardened/report.json';
+if(!fs.existsSync(report))throw Error('Run npm run demo and npm run demo:check first');
+const h=createMcpHandler({reportFile:report,policyFile:'.fea.json'});
+const req=(id,method,params)=>({jsonrpc:'2.0',id,method,params});
+const init=h(req(1,'initialize',{protocolVersion:'2025-11-25'}));
+h({jsonrpc:'2.0',method:'notifications/initialized'});
+const tools=h(req(2,'tools/list',{})).result.tools;
+const summary=h(req(3,'tools/call',{name:'fea_report_summary',arguments:{}})).result.structuredContent;
+if(init.result.protocolVersion!=='2025-11-25'||tools.length!==3||summary.findings!==0)throw Error('MCP_DEMO_FAILED');
+console.log('MCP DEMO PASS: 3 read-only tools, sanitized hardened report, no arbitrary path access.');

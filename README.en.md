@@ -32,7 +32,7 @@ FEA currently focuses on the Electron release workflow: **audit → sanitized ev
 | :--- | ---: | :--- |
 | **6 → 0** | Synthetic demo findings | Deliberately planted exposures removed in the improved fixture |
 | **5 classes** | FEA001–FEA005 | Source maps, private-key markers, internal config, debug assets, test assets |
-| **20 / 20** | Local automated tests passed | Including bounded ASAR parsing, malformed inputs and explicit fallback behavior |
+| **28 / 28** | Local automated tests passed | Including bounded ASAR parsing, malformed inputs and explicit fallback behavior |
 | **2 inputs** | Resource tree / `.asar` | Currently scoped Electron release-resource forms |
 
 **Reproduce:** `npm test && npm run demo && npm run demo:check`. The chart is generated from `demo/generated/reports/comparison/comparison.json` by [`scripts/render-readme-chart.mjs`](scripts/render-readme-chart.mjs).
@@ -74,6 +74,19 @@ node src/cli.mjs arena compare demo/generated/reports/arena/baseline.json demo/g
 ```
 
 [Evaluation protocol and limits](docs/ARENA.md). The original brand mark remains unchanged at `assets/fea-icon.png`.
+
+## v0.3.1: Read-only MCP, authorization reference, and agent-log import
+
+The local stdio MCP server exposes three **read-only** tools over an operator-selected sanitized report, never arbitrary filesystem paths or execution. A separate loopback-only reference service demonstrates server-side tenant/resource/action/expiry/revocation/quota authorization. Arena accepts external agents' JSONL trial logs and evidence digests for comparable paired-run reports.
+
+```bash
+npm test
+npm run demo && npm run demo:check
+npm run mcp:demo && npm run auth:demo && npm run arena:import-demo
+node src/mcp.mjs --report demo/generated/reports/hardened/report.json --policy .fea.json
+```
+
+**Evidence boundary:** the included import fixture is scripted synthetic input; no real AI reverse-engineering attempts have been executed. External logs are not independently authenticated. Read the [MCP guide](docs/MCP.md), [authorization reference](docs/AUTHORIZATION.md), and [agent adapter](docs/AGENT-ADAPTER.md). Original `assets/fea-icon.png` remains untouched.
 
 ## Quick start
 

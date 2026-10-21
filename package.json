@@ -1,6 +1,6 @@
 {
   "name": "@marsbasex/fea",
-  "version": "0.3.0-alpha.1",
+  "version": "0.3.1-alpha.1",
   "private": true,
   "type": "module",
   "bin": {
@@ -10,7 +10,10 @@
     "test": "node --test test/*.test.mjs",
     "demo": "node demo/build.mjs",
     "demo:check": "node demo/check.mjs",
-    "arena:demo": "node demo/arena.mjs"
+    "arena:demo": "node demo/arena.mjs",
+    "auth:demo": "node demo/auth.mjs",
+    "mcp:demo": "node demo/mcp.mjs",
+    "arena:import-demo": "node demo/external-fixture.mjs"
   },
   "engines": {
     "node": ">=20"

@@ -1,3 +1,11 @@
+# FEA v0.3.1 experimental integrations
+
+Run `node src/mcp.mjs --report <trusted-report.json> --policy <trusted-config.json>` to expose three bounded read-only MCP tools. The local MCP server cannot choose files via tool arguments, execute a target, or write to disk.
+
+`npm run auth:demo` demonstrates server-scoped, revocable, expiring, quota-limited opaque bearer credentials on localhost; this reference is **not production authentication**.
+
+`arena import` accepts capped external-agent JSONL trial logs with evidence digests. It strips private traces, cannot authenticate the evidence and **does not run an AI model or attack**. See docs/MCP.md, docs/AUTHORIZATION.md, and docs/AGENT-ADAPTER.md.
+
 # FEA v0.3 experimental Arena evaluation
 
 The `arena compare` command consumes **existing authorized trial logs** and checks task/seed pairing, identical model/tool/environment, budget, minimum 10 valid trials, and opaque artifact digests. See [Arena protocol](docs/ARENA.md). `npm run arena:demo` only runs a deterministic fixture observer; it makes no AI/model calls and does not test real reverse-engineering resistance.
