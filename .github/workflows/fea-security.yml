@@ -1,0 +1,31 @@
+name: FEA Electron security demo
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  scan-and-compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run unit and integration tests
+        run: npm test
+      - name: Generate reproducible Electron release-resource builds
+        run: npm run demo
+      - name: Scan both builds, verify policy gates, and generate comparison
+        run: npm run demo:check
+      - name: Publish sanitized reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fea-demo-reports
+          path: demo/generated/reports/
+          if-no-files-found: ignore
+          retention-days: 7
