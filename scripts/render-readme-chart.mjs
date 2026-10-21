@@ -12,8 +12,8 @@ if(!Array.isArray(data.rules)||data.rules.length<5) throw Error('Expected at lea
 const asInt=v=>{if(!Number.isSafeInteger(v)||v<0)throw Error('Unexpected demo count');return v;};
 const before=asInt(data.beforeCount),after=asInt(data.afterCount);
 if(before!==data.rules.reduce((s,r)=>s+asInt(r.before),0)||after!==data.rules.reduce((s,r)=>s+asInt(r.after),0))throw Error('Rule totals do not match report');
-const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
-const names={'FEA001':'Source maps','FEA002':'Private key markers','FEA003':'Internal config','FEA004':'Debug artifacts','FEA005':'Test/dev assets','FEA006':'Client auth','FEA007':'Hardcoded secrets','FEA008':'Unobfuscated logic'};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&','<':'<','>':'>','"':'"',"'":'''}[c]));
+const names={'FEA001':'Source maps','FEA002':'Private key markers','FEA003':'Internal config','FEA004':'Debug artifacts','FEA005':'Test/dev assets','FEA006':'Client auth','FEA007':'Hardcoded secrets','FEA008':'Unobfuscated logic','FEA009':'Client data exposure'};
 const rows=data.rules.map((r,i)=>{
   const y=249+i*48;
   const width=asInt(r.before)*80;
