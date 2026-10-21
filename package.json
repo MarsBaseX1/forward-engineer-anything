@@ -1,6 +1,6 @@
 {
   "name": "@marsbasex/fea",
-  "version": "0.2.0-alpha.1",
+  "version": "0.3.0-alpha.1",
   "private": true,
   "type": "module",
   "bin": {
@@ -9,7 +9,8 @@
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "demo": "node demo/build.mjs",
-    "demo:check": "node demo/check.mjs"
+    "demo:check": "node demo/check.mjs",
+    "arena:demo": "node demo/arena.mjs"
   },
   "engines": {
     "node": ">=20"

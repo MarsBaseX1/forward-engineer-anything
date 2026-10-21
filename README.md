@@ -1,4 +1,7 @@
 <div align="center">
+  <!-- Original FEA identity, preserved byte-for-byte as assets/fea-icon.png. -->
+  <img src="assets/fea-icon.png" alt="Original FEA teal shield logo" width="128" height="128" />
+
   <img src="assets/fea-hero.svg" alt="FEA — Forward Engineer Anything: Ship less. Prove more." width="100%" />
 
   <br />
@@ -29,7 +32,7 @@ FEA 当前聚焦 Electron：**静态检查 → 出具脱敏证据 → 阻止不�
 | :--- | ---: | :--- |
 | **6 → 0** | 演示样本的扫描发现数 | 人为植入的暴露项在改进样本中被移除 |
 | **5 类** | FEA001–FEA005 | Source Map、私钥格式标记、内部配置、调试资源、测试资源 |
-| **15 / 15** | 本地自动化测试通过 | 包括 ASAR 异常输入、安全边界与跨平台降级的测试 |
+| **20 / 20** | 本地自动化测试通过 | 包括 ASAR 异常输入、安全边界与跨平台降级的测试 |
 | **2 种** | 目录 / `.asar` | 当前受限支持的 Electron 资源输入形态 |
 
 **数据来源与复现：** `npm test && npm run demo && npm run demo:check`。图表由 [`demo/check.mjs`](demo/check.mjs) 生成的 `comparison.json` 自动绘制，具体规则计数可在运行后的 `demo/generated/reports/comparison/comparison.json` 查看。脚本在 [`scripts/render-readme-chart.mjs`](scripts/render-readme-chart.mjs)。
@@ -60,6 +63,17 @@ flowchart LR
 | **Compare** | 输出加固前后 JSON / Markdown 变化报告 | 不是 AI 攻击成功率测试 |
 | **Protect (Preview)** | 给 Electron Forge JSON 配置提供可审查建议 | 不自动改写配置，不执行目标项目代码 |
 | **Signature (Preview)** | Windows 下通过系统工具检查 Authenticode 状态及可选签发者指纹 | 非 Windows 返回“未评估”；不负责签名证书申请 |
+
+## Arena v0.3（实验性评测协议）
+
+Arena 现在支持读取**已授权、预先采集的配对实验日志**，检查相同任务、引擎、预算及种子，并生成成功率、超时和成本的报告。内置演示仅采用脚本化合成数据，**不运行 AI 逆向，也不证明能够阻止逆向**。
+
+```bash
+npm run demo && npm run demo:check && npm run arena:demo
+node src/cli.mjs arena compare demo/generated/reports/arena/baseline.json demo/generated/reports/arena/hardened.json --suite demo/arena-suite.json --out demo/generated/reports/arena/manual
+```
+
+[评测协议与限制](docs/ARENA.md)。原始品牌图标依旧使用 `assets/fea-icon.png`，保持原样。
 
 ## 快速开始
 
@@ -116,7 +130,7 @@ Windows 系统还可运行 `node src/cli.mjs signature ./my-app.exe --out ./audi
 - **已交付到客户端的代码仍可能被逆向、修改或重新实现。** ASAR 归档不是保密边界。
 - 扫描通过不等于没有秘密、没有漏洞、授权无法被绕过。客户端判断不能替代服务端授权。
 - 签名检查不等于加密代码；本工具也不会生成合法的 Windows/macOS 签名。
-- 当前不支持任意 EXE / MSI / DMG 分析、自动加壳、AI 对抗能力评分；macOS 签名验证与 Arena 仍在路线图中。
+- 当前不支持任意 EXE / MSI / DMG 分析、自动加壳或真实 AI 逆向能力评分；macOS 签名验证仍在路线图中。Arena v0.3 仅验证外部运行日志和提供脚本化样本。
 - **v0.2 属于实验实现**，不代表独立审计或安全认证；真实发布前请核验支持格式和异常边界。
 
 ## 下一步与贡献

@@ -4,6 +4,7 @@ import path from 'node:path';
 import {scanAsar} from './asar.mjs';
 import {planForge} from './protect.mjs';
 import {verifyAuthenticode} from './signature.mjs';
+import {loadArenaJson,compareArena,arenaMarkdown} from './arena.mjs';
 import {DEFAULT_CONFIG,VERSION,readConfig,scanDirectory,verifyReport,compareReports,comparisonMarkdown,writeJson} from './core.mjs';
 
 const help=`FEA ${VERSION} — Electron release-resource security checks (experimental)
@@ -15,6 +16,7 @@ Usage:
   fea asar-scan <app.asar> --config .fea.json --out <report-dir>
   fea plan <electron-forge-project> --out <plan-dir>
   fea signature <file.exe> --out <report-dir> [--thumbprint SHA1HEX]
+  fea arena compare <baseline-run.json> <hardened-run.json> --suite <suite.json> --out <report-dir>
 Exit codes: 0 success, 2 policy/coverage failure, 1 invalid input or error.
 IMPORTANT: scans are bounded and format-specific, not installer extraction or proof of security.
 `;
@@ -24,7 +26,7 @@ function parse(argv) {
     const arg=argv[i];
     if(arg.startsWith('--')) {
       const name=arg.slice(2);
-      if(!['out','config','policy','profile','thumbprint','help'].includes(name) || Object.hasOwn(flags,name))throw Error('Invalid flag: '+arg);
+      if(!['out','config','policy','profile','thumbprint','suite','help'].includes(name) || Object.hasOwn(flags,name))throw Error('Invalid flag: '+arg);
       if(name==='help'){flags.help=true;continue;}
       if(!argv[i+1] || argv[i+1].startsWith('--')) throw Error('Missing value for '+arg);
       flags[name]=argv[++i];
@@ -80,6 +82,16 @@ export function run(args) {
       writeJson(path.join(flags.out,'signature.json'),report);
       console.log('Authenticode: '+report.status+'; '+report.notice);
       return report.valid?0:2;
+    }
+    case 'arena': {
+      if(positional.length!==3 || positional[0]!=='compare' || !flags.suite || !flags.out)
+        throw Error('arena compare requires 2 run files, --suite and --out');
+      const suite=loadArenaJson(flags.suite);
+      const result=compareArena(suite,loadArenaJson(positional[1]),loadArenaJson(positional[2]));
+      writeJson(path.join(flags.out,'comparison.json'),result);
+      fs.writeFileSync(path.join(flags.out,'comparison.md'),arenaMarkdown(result));
+      console.log(arenaMarkdown(result));
+      return 0;
     }
     case 'verify': {
       if(positional.length!==1)throw Error('verify requires a report.json');

@@ -25,6 +25,8 @@ jobs:
         run: npm run demo
       - name: Check resource trees and ASAR builds
         run: npm run demo:check
+      - name: Run reproducible scripted Arena demo (not an AI benchmark)
+        run: npm run arena:demo
       - name: Verify README data chart was generated from current demo
         shell: bash
         run: |
