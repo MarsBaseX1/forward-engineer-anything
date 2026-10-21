@@ -1,0 +1,18 @@
+{
+  "name": "@marsbasex/fea",
+  "version": "0.1.0-alpha.1",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "fea": "./src/cli.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/core.test.mjs",
+    "demo": "node demo/build.mjs",
+    "demo:check": "node demo/check.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "Apache-2.0"
+}
