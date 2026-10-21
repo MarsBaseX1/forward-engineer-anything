@@ -35,6 +35,7 @@ test('embedded Forge: apply and rollback restore identical bytes while preservin
   const updated=JSON.parse(fs.readFileSync(target,'utf8'));
   assert.equal(updated.config.forge.packagerConfig.asar,true);
   assert.equal(updated.config.forge.packagerConfig.icon,'kept');
+  assert.ok(updated.config.forge.plugins.some(p=>p[0]==='@electron-forge/plugin-fuses'));
   assert.equal(h(fs.readFileSync(target)),plan.toSha256);
   assert.equal(rollbackHardening(project,result.receipt).restored,true);
   assert.deepEqual(fs.readFileSync(target),original);
@@ -93,9 +94,10 @@ test('unsupported version and ambiguous sources fail closed',t=>{
   fs.writeFileSync(path.join(project,'forge.config.json'),'{}');
   assert.throws(()=>previewHardening(project),/AMBIGUOUS/);
 });
-test('already enabled ASAR yields no-op preview, refuse apply',t=>{
+test('already fully configured ASAR and fuses yields no-op preview, refuse apply',t=>{
   const {project,state,target}=fixture(t);const obj=JSON.parse(fs.readFileSync(target));
-  obj.config.forge.packagerConfig.asar={unpack:'**/*.node'};
+  obj.config.forge.packagerConfig.asar=true;
+  obj.config.forge.plugins=[['@electron-forge/plugin-fuses',{version:1,fuses:{EnableEmbeddedAsarIntegrityValidation:true,OnlyLoadAppFromAsar:true}}]];
   fs.writeFileSync(target,JSON.stringify(obj));
   const plan=previewHardening(project);
   assert.equal(plan.changeRequired,false);
