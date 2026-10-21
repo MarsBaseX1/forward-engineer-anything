@@ -25,19 +25,19 @@ FEA 当前聚焦 Electron：**静态检查 → 出具脱敏证据 → 阻止不�
 ## 可复现的关键数据
 
 <div align="center">
-  <img src="assets/fea-demo-exposure.svg" alt="自有合成 Electron 演示样本：9 类规则中，基线发现多项，改进样本发现 0 项" width="95%" />
+  <img src="assets/fea-demo-exposure.svg" alt="自有合成 Electron 演示样本：9 类规则中，基线发现 11 项，改进样本发现 0 项" width="95%" />
 </div>
 
 | 指标 | 本仓库可复现结果 | 代表什么 |
 | :--- | ---: | :--- |
-| **多项 → 0** | 演示样本的扫描发现数 | 人为植入的暴露项在改进样本中被移除 |
+| **11 → 0** | 演示样本的扫描发现数 | 人为植入的暴露项在改进样本中被移除 |
 | **9 类** | FEA001–FEA009 | Source Map、私钥、内部配置、调试资源、测试资源、客户端授权、硬编码密钥、未混淆逻辑、客户端数据暴露 |
-| **多项** | 本地自动化测试通过 | 包括 ASAR 异常输入、安全边界与跨平台降级的测试 |
+| **77 / 77** | 自动化测试通过 | 包括 ASAR 异常输入、安全边界与跨平台降级的测试 |
 | **2 种** | 目录 / `.asar` | 当前受限支持的 Electron 资源输入形态 |
 
 **数据来源与复现：** `npm test && npm run demo && npm run demo:check`。图表由 [`demo/check.mjs`](demo/check.mjs) 生成的 `comparison.json` 自动绘制，具体规则计数可在运行后的 `demo/generated/reports/comparison/comparison.json` 查看。脚本在 [`scripts/render-readme-chart.mjs`](scripts/render-readme-chart.mjs)。
 
-> ⚠️ **演示数据不是商业软件安全测评。** 发现数从多项降到 0 只反映同一合成样本中可观察的信息暴露项变化，不代表逆向破解概率下降 100%、真实产品没有漏洞，或对 AI 逆向具备可量化抵抗力。
+> ⚠️ **演示数据不是商业软件安全测评。** 11 → 0 只反映同一合成样本中可观察的信息暴露项变化，不代表逆向破解概率下降 100%、真实产品没有漏洞，或对 AI 逆向具备可量化抵抗力。
 
 ## FEA 如何工作
 
