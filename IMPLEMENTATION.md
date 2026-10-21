@@ -1,3 +1,7 @@
+# FEA v0.4.1 (experimental): Fuse prerequisite + unpacked artifact checks
+
+Static release inspection and owned-app startup contract demo have been added. See [Release Readiness](docs/RELEASE-READINESS.md). These tools do not build packages, run a real GUI, verify embedded fuses or validate platform signatures.
+
 # FEA v0.4 experimental Forge patch / rollback
 
 The new `protect preview`, `protect apply`, and `protect rollback` commands implement a narrow **JSON configuration** workflow for Forge 7.4+ (major 7). Existing `fea plan` remains review-only. Preview never writes to the project; apply uses an explicit external backup directory and refuses stale input; rollback verifies both the target and backup digests. No untrusted project code, build scripts, installers, or secrets are executed or transmitted. **ASAR is not encryption and the patch does not prove an app is secure.** See [Protect automation guide](docs/PROTECT-AUTOMATION.md).
@@ -76,7 +80,7 @@ npm run demo:check
 cat demo/generated/reports/comparison/comparison.md
 ```
 
-`demo/electron-app/` is a **minimal, runnable Electron application** (`npm install --prefix demo/electron-app` followed by `npm start --prefix demo/electron-app`). The deterministic `demo/build.mjs` script produces both `demo/generated/baseline/app` and `demo/generated/hardened/app` from the same app source, with *only the baseline* intentionally shipping synthetic source maps, a fake PEM key marker, internal configuration, debug asset, test artifact, client-side auth checks, hardcoded secret candidates and unobfuscated logic indicators. The hardened tree omits these accidental release assets. The demo does not need Electron installed because it tests the static release resource tree, not runtime behavior.
+`demo/electron-app/` is a **minimal, runnable Electron application** (`npm install --prefix demo/electron-app` followed by `npm start --prefix demo/electron-app`). The deterministic `demo/build.mjs` script produces both `demo/generated/baseline/app` and `demo/generated/hardened/app` from the same app source, with *only the baseline* intentionally shipping synthetic source maps, a fake PEM key marker, internal configuration, debug asset and test artifact. The hardened tree omits these accidental release assets. The demo does not need Electron installed because it tests the static release resource tree, not runtime behavior.
 
 The baseline verify step is **expected to fail**, while hardened verification is expected to pass. `demo/check.mjs` asserts those outcomes and generates `comparison.json` and `comparison.md`. The latter contains rule-by-rule counts, resolved, introduced and remaining findings. This is a **release-hygiene** comparison only, not a quantitative proof of resistance to REA, code extraction or tampering.
 
@@ -89,9 +93,6 @@ The baseline verify step is **expected to fail**, while hardened verification is
 | FEA003 | Internal/secret-like config filenames or known internal key names | Heuristic, not exhaustive secret detection |
 | FEA004 | `.pdb`, `.ilk`, `.dSYM`, `.debug` assets | Filename heuristics |
 | FEA005 | Test/fixture directories and test source files | May be legitimate in some distributions |
-| FEA006 | Client-side authorization or license judgment patterns (`isPremium`, `checkLicense`, etc.) | Heuristic; real enforcement must stay server-side |
-| FEA007 | Hardcoded secret or credential assignment candidates | Pattern-based; not exhaustive; no online validation |
-| FEA008 | Unobfuscated business logic indicators (TODO/FIXME, named business functions) | Presence does not prove vulnerability; raises reverse cost |
 
 The scanner never executes target code or checks candidate secrets online. Inputs are assumed to be from **trusted, non-concurrently modified build snapshots**. Symlinks, special files, errors, oversized inputs and time limits cause a fail-closed incomplete scan; it does not report a clean success when coverage is incomplete. Report output must live outside input directories. Rule findings are deterministic for the same input snapshot; run metadata such as time is separate. Candidate-key markers, names and contents are not included in public reports. Exceptions require a matching rule, hashed path ID, owner, reason and expiry; expired exceptions no longer suppress policy failure.
 

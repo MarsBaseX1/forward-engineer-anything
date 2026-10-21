@@ -25,14 +25,14 @@ FEA 当前聚焦 Electron：**静态检查 → 出具脱敏证据 → 阻止不�
 ## 可复现的关键数据
 
 <div align="center">
-  <img src="assets/fea-demo-exposure.svg" alt="自有合成 Electron 演示样本：5 类规则中，基线发现 6 项，改进样本发现 0 项" width="95%" />
+  <img src="assets/fea-demo-exposure.svg" alt="自有合成 Electron 演示样本：8 类规则中，基线发现 10 项，改进样本发现 0 项" width="95%" />
 </div>
 
 | 指标 | 本仓库可复现结果 | 代表什么 |
 | :--- | ---: | :--- |
-| **6 → 0** | 演示样本的扫描发现数 | 人为植入的暴露项在改进样本中被移除 |
-| **5 类** | FEA001–FEA005 | Source Map、私钥格式标记、内部配置、调试资源、测试资源 |
-| **53 / 53** | 本地自动化测试通过 | 包括 ASAR 异常输入、安全边界与跨平台降级的测试 |
+| **10 → 0** | 演示样本的扫描发现数 | 人为植入的暴露项在改进样本中被移除 |
+| **8 类** | FEA001–FEA008 | Source Map、私钥格式标记、内部配置、调试资源、测试资源 |
+| **66 / 66** | 本地自动化测试通过 | 包括 ASAR 异常输入、安全边界与跨平台降级的测试 |
 | **2 种** | 目录 / `.asar` | 当前受限支持的 Electron 资源输入形态 |
 
 **数据来源与复现：** `npm test && npm run demo && npm run demo:check`。图表由 [`demo/check.mjs`](demo/check.mjs) 生成的 `comparison.json` 自动绘制，具体规则计数可在运行后的 `demo/generated/reports/comparison/comparison.json` 查看。脚本在 [`scripts/render-readme-chart.mjs`](scripts/render-readme-chart.mjs)。
@@ -128,6 +128,18 @@ npm run protect:demo
 应用前将检查文件 SHA-256，拒绝过期计划、重复 JSON 键、链接文件与含 JS/TS 配置的项目。备份必须放在**项目目录之外**，避免提交私有构建配置。回滚时会检查修改后的文件哈希，若其他进程更改过配置则拒绝覆盖。仅支持受信任、扫描时不会并发修改的本地工作目录。
 
 **ASAR 不是加密，打开 ASAR 也不等于抵御逆向。** 本阶段不自动删除源映射，不自动配置完整性 Fuse，也不证明打包成功。详见 [受控配置修改说明](docs/PROTECT-AUTOMATION.md)。
+
+## v0.4.1：Fuses 兼容性与解包产物检查（实验性）
+
+本阶段增加 **Windows / macOS Electron ASAR 完整性版本前提检查**，以及对开发者提供的**已解包**应用进行 PE/Mach-O 文件头、`app.asar` 规则扫描、SHA-256 与发布策略检查。
+
+```bash
+node src/cli.mjs release compat ./my-electron-project --platform win32 --out ./audit/fuse-compat.json
+node src/cli.mjs release inspect ./out/my-app-win32-x64 --platform win32 --config .fea.json --out ./audit/release
+npm run demo && npm run release:demo
+```
+
+版本兼容只检查声明值（Windows Electron ≥30、macOS Electron ≥16、Forge ≥7.4），**不会验证可执行文件内真实 Fuse 位**。回归演示使用模拟 Electron API 检查自有样本的窗口创建安全配置，**不等于真实 GUI 启动测试**；产物检查也不验证签名、嵌入的 ASAR 头部哈希或安装包。详细边界见 [Release Readiness](docs/RELEASE-READINESS.md)。
 
 ## 快速开始
 

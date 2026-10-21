@@ -25,14 +25,14 @@ FEA currently focuses on the Electron release workflow: **audit → sanitized ev
 ## Reproducible demo data
 
 <div align="center">
-  <img src="assets/fea-demo-exposure.svg" alt="On FEA's own synthetic Electron fixture, detected release-exposure findings fall from 6 to 0 across 5 categories." width="95%" />
+  <img src="assets/fea-demo-exposure.svg" alt="On FEA's own synthetic Electron fixture, detected release-exposure findings fall from 10 to 0 across 8 categories." width="95%" />
 </div>
 
 | Metric | Reproducible result | What it means |
 | :--- | ---: | :--- |
-| **6 → 0** | Synthetic demo findings | Deliberately planted exposures removed in the improved fixture |
-| **5 classes** | FEA001–FEA005 | Source maps, private-key markers, internal config, debug assets, test assets |
-| **53 / 53** | Local automated tests passed | Including bounded ASAR parsing, malformed inputs and explicit fallback behavior |
+| **10 → 0** | Synthetic demo findings | Deliberately planted exposures removed in the improved fixture |
+| **8 classes** | FEA001–FEA008 | Source maps, private-key markers, internal config, debug assets, test assets |
+| **66 / 66** | Local automated tests passed | Including bounded ASAR parsing, malformed inputs and explicit fallback behavior |
 | **2 inputs** | Resource tree / `.asar` | Currently scoped Electron release-resource forms |
 
 **Reproduce:** `npm test && npm run demo && npm run demo:check`. The chart is generated from `demo/generated/reports/comparison/comparison.json` by [`scripts/render-readme-chart.mjs`](scripts/render-readme-chart.mjs).
@@ -124,6 +124,19 @@ npm run protect:demo
 ```
 
 The apply step rechecks the source digest and refuses stale/tampered plans; rollback rejects drift, including changes made after applying. Backups must live **outside the project** to avoid accidentally committing secrets. Only use this against a trusted, static local worktree. **ASAR is packaging, not encryption or proof of reverse-engineering resistance.** See [documented limitations](docs/PROTECT-AUTOMATION.md).
+
+
+## v0.4.1: Fuse prerequisites and unpacked release inspection (experimental)
+
+FEA now checks **declared Electron / Forge versions per platform**, and inspects an **operator-provided unpacked app** for PE/Mach-O headers, ASAR hygiene findings, SHA-256 digests and release policy results.
+
+```bash
+node src/cli.mjs release compat ./my-electron-project --platform win32 --out ./audit/fuse-compat.json
+node src/cli.mjs release inspect ./out/my-app-win32-x64 --platform win32 --config .fea.json --out ./audit/release
+npm run demo && npm run release:demo
+```
+
+Version compatibility is **declaration-only** (Windows Electron >=30, macOS >=16, Forge >=7.4). It does **not** verify actual embedded binary fuses or their linked ASAR header hashes. The startup regression demo uses a mocked Electron API against owned sample code, **not a real GUI launch**. Packaging, signing and installer validation remain outside this phase. See [Release Readiness](docs/RELEASE-READINESS.md).
 
 ## Quick start
 
