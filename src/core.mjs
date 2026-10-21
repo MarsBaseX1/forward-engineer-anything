@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
-export const VERSION = '0.3.3-alpha.1';
+export const VERSION = '0.4.0-alpha.1';
 export const RULES = Object.freeze({
   FEA001: {title:'Source map shipped', severity:'high'},
   FEA002: {title:'Potential private key in release', severity:'critical'},
