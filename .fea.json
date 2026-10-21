@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "profile": "electron-resources",
+  "inputStage": "prepackage",
+  "limits": {
+    "maxFiles": 20000,
+    "maxFileBytes": 4194304,
+    "maxTotalBytes": 209715200,
+    "maxDurationMs": 30000
+  },
+  "policy": {
+    "block": ["FEA001", "FEA002", "FEA003", "FEA004", "FEA005"],
+    "exceptions": []
+  }
+}
