@@ -6,6 +6,7 @@ import {toSarif} from './sarif.mjs';
 import {planForge} from './protect.mjs';
 import {previewHardening,applyHardening,rollbackHardening} from './protect-apply.mjs';
 import {verifyAuthenticode} from './signature.mjs';
+import {evaluateFuseCompatibility,inspectUnpackedRelease} from './release-readiness.mjs';
 import {loadArenaJson,compareArena,arenaMarkdown} from './arena.mjs';
 import {importExternalFiles} from './arena-import.mjs';
 import {runPairedArena} from './arena-runner.mjs';
@@ -24,6 +25,8 @@ Usage:
   fea protect apply <project-dir> --plan <plan.json> --state <external-backups-dir>
   fea protect rollback <project-dir> --receipt <receipt.json>
   fea signature <file.exe> --out <report-dir> [--thumbprint SHA1HEX]
+  fea release compat <project-dir> --platform win32|darwin --out <report.json>
+  fea release inspect <unpacked-root> --platform win32|darwin --config .fea.json --out <report-dir> [--asar-sha256 SHA256]
   fea arena compare <baseline-run.json> <hardened-run.json> --suite <suite.json> --out <report-dir>
   fea arena import <trials.jsonl> --suite <suite.json> --descriptor <descriptor.json> --out <run.json>
   fea arena execute --suite <suite.json> --baseline <app.asar> --hardened <app.asar> --adapter <trusted.mjs> --engine <engine.json> --out <dir> --i-own-artifacts
@@ -36,7 +39,7 @@ function parse(argv) {
     const arg=argv[i];
     if(arg.startsWith('--')) {
       const name=arg.slice(2);
-      if(!['out','config','policy','profile','thumbprint','suite','descriptor','baseline','hardened','adapter','engine','i-own-artifacts','plan','state','receipt','help'].includes(name) || Object.hasOwn(flags,name))throw Error('Invalid flag: '+arg);
+      if(!['out','config','policy','profile','thumbprint','suite','descriptor','baseline','hardened','adapter','engine','i-own-artifacts','plan','state','receipt','platform','asar-sha256','help'].includes(name) || Object.hasOwn(flags,name))throw Error('Invalid flag: '+arg);
       if(name==='help'||name==='i-own-artifacts'){flags[name]=true;continue;}
       if(!argv[i+1] || argv[i+1].startsWith('--')) throw Error('Missing value for '+arg);
       flags[name]=argv[++i];
@@ -118,6 +121,25 @@ export function run(args) {
         return 0;
       }
       throw Error('protect supports preview, apply, rollback');
+    }
+    case 'release': {
+      if(positional.length!==2 || !flags.platform || !flags.out)throw Error('release requires compat/inspect <path> --platform win32|darwin --out');
+      const [operation,location]=positional;
+      if(operation==='compat'){
+        const report=evaluateFuseCompatibility(location,flags.platform);
+        writeJson(flags.out,report);
+        console.log('Fuse compatibility: '+report.status+' (declared versions only; no binary fuse verification)');
+        return report.status==='compatible-declarations'?0:2;
+      }
+      if(operation==='inspect'){
+        const config=readConfig(flags.config||'.fea.json');
+        const {result,scan}=inspectUnpackedRelease(location,{platform:flags.platform,config,expectedAsarSha256:flags['asar-sha256'],out:flags.out});
+        writeJson(path.join(flags.out,'release.json'),result);
+        writeJson(path.join(flags.out,'asar-report.json'),scan);
+        console.log('Release static inspection: '+result.status+'; not a signature, binary fuse, or GUI runtime verification.');
+        return result.status==='static-checks-pass'?0:2;
+      }
+      throw Error('release supports compat and inspect');
     }
     case 'signature': {
       if(positional.length!==1 || !flags.out) throw Error('signature requires <file.exe> --out');

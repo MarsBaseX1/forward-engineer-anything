@@ -1,6 +1,6 @@
 {
   "name": "@marsbasex/fea",
-  "version": "0.4.0-alpha.1",
+  "version": "0.4.1-alpha.1",
   "private": true,
   "type": "module",
   "bin": {
@@ -16,7 +16,8 @@
     "arena:import-demo": "node demo/external-fixture.mjs",
     "protect:demo": "node demo/protect.mjs",
     "sarif:demo": "node demo/sarif.mjs",
-    "arena:execute-demo": "node src/cli.mjs arena execute --suite demo/arena-suite.json --baseline demo/generated/baseline/app.asar --hardened demo/generated/hardened/app.asar --adapter demo/trusted-observer.mjs --engine demo/arena-executor-engine.json --out demo/generated/reports/arena-execution --i-own-artifacts"
+    "arena:execute-demo": "node src/cli.mjs arena execute --suite demo/arena-suite.json --baseline demo/generated/baseline/app.asar --hardened demo/generated/hardened/app.asar --adapter demo/trusted-observer.mjs --engine demo/arena-executor-engine.json --out demo/generated/reports/arena-execution --i-own-artifacts",
+    "release:demo": "node demo/release-readiness.mjs"
   },
   "engines": {
     "node": ">=20"

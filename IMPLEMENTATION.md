@@ -1,3 +1,7 @@
+# FEA v0.4.1 (experimental): Fuse prerequisite + unpacked artifact checks
+
+Static release inspection and owned-app startup contract demo have been added. See [Release Readiness](docs/RELEASE-READINESS.md). These tools do not build packages, run a real GUI, verify embedded fuses or validate platform signatures.
+
 # FEA v0.4 experimental Forge patch / rollback
 
 The new `protect preview`, `protect apply`, and `protect rollback` commands implement a narrow **JSON configuration** workflow for Forge 7.4+ (major 7). Existing `fea plan` remains review-only. Preview never writes to the project; apply uses an explicit external backup directory and refuses stale input; rollback verifies both the target and backup digests. No untrusted project code, build scripts, installers, or secrets are executed or transmitted. **ASAR is not encryption and the patch does not prove an app is secure.** See [Protect automation guide](docs/PROTECT-AUTOMATION.md).

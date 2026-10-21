@@ -37,6 +37,8 @@ jobs:
         run: npm run arena:execute-demo
       - name: Verify reviewable Forge JSON patch and exact rollback (synthetic fixture)
         run: npm run protect:demo
+      - name: Verify declared fuse compatibility and synthetic unpacked release with isolated startup contract
+        run: npm run release:demo
       - name: Validate sanitized SARIF export from baseline and hardened demo
         run: npm run sarif:demo
       - name: Verify README data chart was generated from current demo
