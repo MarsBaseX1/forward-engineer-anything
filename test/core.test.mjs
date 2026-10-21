@@ -21,9 +21,10 @@ test('scans exposure categories including new anti-REA rules, never writes raw p
   f.put('auth.js','function isPremium(){return true;}');
   f.put('config.js','const api_key = "sk-abcdef1234567890abcdef";');
   f.put('logic.js','// TODO: calculatePrice for enterprise');
+  f.put('state.js','window.__INITIAL_STATE__ = {user: {token: "abc"}};');
   const result=scanDirectory(f.input,DEFAULT_CONFIG,{out:path.join(f.root,'reports')});
   assert.equal(result.coverage.complete,true);
-  assert.deepEqual([...new Set(result.findings.map(f=>f.ruleId))].sort(),['FEA001','FEA002','FEA003','FEA004','FEA005','FEA006','FEA007','FEA008']);
+  assert.deepEqual([...new Set(result.findings.map(f=>f.ruleId))].sort(),['FEA001','FEA002','FEA003','FEA004','FEA005','FEA006','FEA007','FEA008','FEA009']);
   const json=JSON.stringify(result);assert.equal(json.includes(secret),false);assert.equal(json.includes('credentials.pem'),false);
   assert.equal(verifyReport(result,DEFAULT_CONFIG).ok,false);
 });
