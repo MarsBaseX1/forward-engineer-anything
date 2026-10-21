@@ -1,0 +1,33 @@
+name: FEA SARIF upload (synthetic verification)
+# This workflow verifies GitHub Code Scanning integration against an owned,
+# *clean* fixture. For a real product, replace the demo build with your trusted
+# Electron release-resource build. Do not upload synthetic baseline alerts.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  security-events: write
+jobs:
+  upload-fea-sarif:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate owned clean Electron resource fixture
+        run: npm run demo
+      - name: Audit trusted, generated resource tree
+        run: node src/cli.mjs scan demo/generated/hardened/app --config .fea.json --out demo/generated/reports/code-scanning
+      - name: Fail closed on incomplete scan or blocking findings
+        run: node src/cli.mjs verify demo/generated/reports/code-scanning/report.json --policy .fea.json
+      - name: Export sanitized SARIF with stable repository anchor
+        run: node src/cli.mjs sarif demo/generated/reports/code-scanning/report.json --out demo/generated/reports/code-scanning/results.sarif
+      - name: Upload SARIF to Code Scanning
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: demo/generated/reports/code-scanning/results.sarif
+          category: fea-synthetic-clean-fixture

@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {scanAsar} from './asar.mjs';
+import {toSarif} from './sarif.mjs';
 import {planForge} from './protect.mjs';
 import {verifyAuthenticode} from './signature.mjs';
 import {loadArenaJson,compareArena,arenaMarkdown} from './arena.mjs';
@@ -14,6 +15,7 @@ Usage:
   fea init --profile electron-resources [--out .fea.json]
   fea scan <resources-dir> --config .fea.json --out <report-dir>
   fea verify <report.json> --policy .fea.json
+  fea sarif <trusted-report.json> --out <results.sarif>
   fea compare <before.json> <after.json> --out <comparison-dir>
   fea asar-scan <app.asar> --config .fea.json --out <report-dir>
   fea plan <electron-forge-project> --out <plan-dir>
@@ -72,6 +74,14 @@ export function run(args) {
       fs.writeFileSync(path.join(flags.out,'summary.txt'),reportSummary(report));
       console.log(reportSummary(report));
       return report.coverage.complete?0:2;
+    }
+    case 'sarif': {
+      if(positional.length!==1 || !flags.out || !flags.out.toLowerCase().endsWith('.sarif')) throw Error('sarif requires <trusted-report.json> --out <file.sarif>');
+      const report=JSON.parse(fs.readFileSync(positional[0],'utf8'));
+      const result=toSarif(report);
+      writeJson(flags.out,result);
+      console.log(`Wrote sanitized SARIF: ${result.runs[0].results.length} finding(s), physical locations point to .github/fea-sarif-anchor.md (NOT actual asset paths)`);
+      return 0;
     }
     case 'plan': {
       if(positional.length!==1 || !flags.out) throw Error('plan requires <project-dir> --out');
