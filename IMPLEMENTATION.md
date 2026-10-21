@@ -1,3 +1,15 @@
+# FEA v0.4 experimental Forge patch / rollback
+
+The new `protect preview`, `protect apply`, and `protect rollback` commands implement a narrow **JSON configuration** workflow for Forge 7.4+ (major 7). Existing `fea plan` remains review-only. Preview never writes to the project; apply uses an explicit external backup directory and refuses stale input; rollback verifies both the target and backup digests. No untrusted project code, build scripts, installers, or secrets are executed or transmitted. **ASAR is not encryption and the patch does not prove an app is secure.** See [Protect automation guide](docs/PROTECT-AUTOMATION.md).
+
+Reproduce with `npm test && npm run protect:demo`.
+
+# FEA v0.3.3 SARIF and Code Scanning (experimental)
+
+`node src/cli.mjs sarif <trusted-report.json> --out <file.sarif>` produces deterministic SARIF 2.1.0 from a **complete** release-resource scan; incomplete coverage, malformed reports, duplicate findings and excessive findings fail closed. `npm run sarif:demo` compares a deliberately exposed and hardened owned fixture. The CLI never publishes raw filenames, candidate secret values, source excerpts or user-provided report messages. Results intentionally point to a tracked GitHub anchor rather than their real asset location; repository owners must keep the private scan report for triage. `docs/CODE-SCANNING.md` includes a workflow and limitations.
+
+The separate Code Scanning workflow exercises GitHub SARIF ingestion with a clean synthetic sample. It is not a scan of arbitrary apps in the repo, not a security certification, and not a measured AI reverse-engineering defense.
+
 # FEA v0.3.2 bounded local trial execution
 
 `npm run arena:execute-demo` runs a locally selected and trusted Node adapter against two synthetic owned ASAR files in paired experiments. See [Arena executor](docs/ARENA-EXECUTOR.md). 33 automated tests cover the current functionality. This fixture does **not** call an AI model or measure real reverse engineering. It is not an execution sandbox, and model cost/success claims supplied by an adapter are self-reported.
@@ -89,7 +101,7 @@ The scanner never executes target code or checks candidate secrets online. Input
 - v0.1 does not inspect installers `.msi`, `.dmg`, update channels, network permissions or arbitrary native binaries. v0.2 adds bounded ASAR reads and Windows-only EXE signature status, not full installer introspection. It is not a general-purpose reverse-engineering defense.
 - Private paths are hashed by default, reducing report exposure but making manual localization less convenient. Findings may have false positives and false negatives.
 - A `report.json` file is **not signed or authenticated**; verification is trustworthy only when that file comes from the same protected CI build context. Do not accept a third party's JSON file as proof of security.
-- This MVP does not yet implement automatic protective code patches, `arena`, MCP interface, SARIF export or real AI-assisted reverse-engineering benchmark. The before/after report compares deterministic release-resource findings, **not attacker success rates**.
+- This experimental suite does not yet implement automatic protective code patches or a real AI-assisted reverse-engineering benchmark; Arena, MCP, and SARIF interfaces are implemented with the documented limits. The before/after report compares deterministic release-resource findings, **not attacker success rates**.
 - Content checks target readable text extensions; text hidden in unknown binary formats or containers is not fully analyzed. This input limitation is not proof no secrets are present.
 - Code signing, obfuscation and `asar` packing do not guarantee code confidentiality. Server-side authorization and minimizing shipped secrets are independent requirements.
 
