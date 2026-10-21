@@ -6,6 +6,7 @@
 - **FEA009**: Client-side sensitive data exposure (window.__STATE__, __APOLLO_STATE__, localStorage token patterns).
 - Migration suggestions for FEA006 / FEA007 (`fea migrate`).
 - Obfuscation suggestions for FEA001 / FEA008 (`fea obfuscate`).
+- Runtime protection suggestions (`fea runtime`).
 - Anti-REA Arena suite and `demo/rea-observer.mjs` adapter skeleton.
 - Electron Fuses automation in `protect` (EnableEmbeddedAsarIntegrityValidation + OnlyLoadAppFromAsar).
 
