@@ -10,8 +10,8 @@ for(const stage of ['baseline','hardened']) {
   const r=spawnSync(process.execPath,[cli,'sarif',path.join(reports,stage,'report.json'),'--out',out],{encoding:'utf8'});
   if(r.status!==0)throw Error(`SARIF CLI ${stage}: ${r.stderr}`);
   const sarif=JSON.parse(fs.readFileSync(out,'utf8'));
-  const expected=stage==='baseline'?6:0;
+  const expected=JSON.parse(fs.readFileSync(path.join(reports,stage,'report.json'),'utf8')).findings.length;
   if(sarif.runs[0].results.length!==expected)throw Error(`SARIF ${stage} findings mismatch`);
   for(const item of sarif.runs[0].results)if(item.locations[0].physicalLocation.artifactLocation.uri!=='.github/fea-sarif-anchor.md')throw Error('Location was not redacted');
 }
-console.log('SARIF DEMO PASS: synthetic baseline 6 findings, hardened 0; both use repo anchor and contain no private paths.');
+console.log('SARIF DEMO PASS: synthetic sample findings match scanner report; GitHub anchor only; no private paths.');

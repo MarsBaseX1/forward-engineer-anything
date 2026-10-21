@@ -25,13 +25,13 @@ FEA currently focuses on the Electron release workflow: **audit → sanitized ev
 ## Reproducible demo data
 
 <div align="center">
-  <img src="assets/fea-demo-exposure.svg" alt="On FEA's own synthetic Electron fixture, detected release-exposure findings fall from 6 to 0 across 5 categories." width="95%" />
+  <img src="assets/fea-demo-exposure.svg" alt="On FEA's own synthetic Electron fixture, detected release-exposure findings fall from 10 to 0 across 8 categories." width="95%" />
 </div>
 
 | Metric | Reproducible result | What it means |
 | :--- | ---: | :--- |
-| **6 → 0** | Synthetic demo findings | Deliberately planted exposures removed in the improved fixture |
-| **5 classes** | FEA001–FEA005 | Source maps, private-key markers, internal config, debug assets, test assets |
+| **10 → 0** | Synthetic demo findings | Deliberately planted exposures removed in the improved fixture |
+| **8 classes** | FEA001–FEA008 | Source maps, private-key markers, internal config, debug assets, test assets |
 | **66 / 66** | Local automated tests passed | Including bounded ASAR parsing, malformed inputs and explicit fallback behavior |
 | **2 inputs** | Resource tree / `.asar` | Currently scoped Electron release-resource forms |
 

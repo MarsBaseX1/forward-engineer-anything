@@ -8,7 +8,10 @@ export const RULES = Object.freeze({
   FEA002: {title:'Potential private key in release', severity:'critical'},
   FEA003: {title:'Internal configuration in release', severity:'high'},
   FEA004: {title:'Debug symbol or diagnostic artifact', severity:'medium'},
-  FEA005: {title:'Development or test asset in release', severity:'medium'}
+  FEA005: {title:'Development or test asset in release', severity:'medium'},
+  FEA006: {title:'Client-side authorization or license judgment', severity:'high'},
+  FEA007: {title:'Hardcoded secret or credential candidate', severity:'high'},
+  FEA008: {title:'Unobfuscated business logic indicators', severity:'medium'}
 });
 export const DEFAULT_CONFIG = Object.freeze({
   schemaVersion:1,
@@ -26,6 +29,9 @@ const internalName = /(?:^\.env(?:\..+)?$|(?:^|[._-])internal(?:[._-]|$)|(?:^|[.
 const internalText = /\b(?:INTERNAL_(?:API|URL|TOKEN|SECRET)|PRIVATE_API_(?:KEY|URL)|SERVER_SECRET)\b/i;
 const debugName = /(?:\.pdb|\.ilk|\.dSYM(?:\/|$)|\.debug)$/i;
 const devAsset = /(?:^|\/)(?:__tests__|__mocks__|tests?|fixtures|e2e)(?:\/|$)|\.(?:spec|test)\.[cm]?[jt]sx?$/i;
+const clientAuth = /\b(?:isPremium|isPro|isLicensed|hasLicense|checkLicense|validateLicense|licenseValid|authCheck|isAuthenticated|hasValidKey)\b/i;
+const hardcodedSecret = /(?:api[_-]?key|secret[_-]?key|access[_-]?token|auth[_-]?token)\s*[:=]\s*['"][A-Za-z0-9_\-]{16,}['"]/i;
+const unobfuscated = /\b(?:TODO|FIXME|calculatePrice|validateUser|processPayment|getUserPlan|checkSubscription)\b/i;
 
 // Shared file rule engine for resource directories and bounded ASAR entries.
 // This never executes source code or returns raw candidate-secret content.
@@ -46,6 +52,9 @@ export function inspectAsset(relative, bytes) {
       if (keyMarker.test(content)) found.add('FEA002');
       if (!internalName.test(base) && internalText.test(content)) found.add('FEA003');
       if (/\bsourceMappingURL\s*=/.test(content) && !sourcemap.test(base)) found.add('FEA001');
+      if (clientAuth.test(content)) found.add('FEA006');
+      if (hardcodedSecret.test(content)) found.add('FEA007');
+      if (unobfuscated.test(content)) found.add('FEA008');
     }
   }
   return {ruleIds:[...found], textInspected, opaqueText};

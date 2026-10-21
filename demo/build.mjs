@@ -21,6 +21,9 @@ for(const kind of ['baseline','hardened']) {
     write(path.join(target,'keys','demo.pem'),'-----BEGIN PRIVATE KEY-----\nSYNTHETIC-NOT-A-REAL-KEY\n-----END PRIVATE KEY-----\n');
     write(path.join(target,'debug.pdb'),'Synthetic demonstration artifact. Not a real PDB.');
     write(path.join(target,'__tests__','smoke.test.js'),'// synthetic non-production fixture\n');
+    write(path.join(target,'auth.js'),'function isPremium() { return localStorage.getItem("license") === "valid"; }\n');
+    write(path.join(target,'secrets.js'),'const api_key = "sk-syntheticDemoKey1234567890abcdef";\n');
+    write(path.join(target,'business.js'),'// TODO: calculatePrice must stay server-side\nfunction getUserPlan() { return "free"; }\n');
   }
   packDemoAsar(target,path.join(output,kind,'app.asar'));
 }
