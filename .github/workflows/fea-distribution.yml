@@ -1,0 +1,52 @@
+name: FEA offline distribution acceptance
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'scripts/distribution-smoke.mjs'
+      - 'test/distribution.test.mjs'
+      - 'docs/PRODUCTION-READINESS.md'
+      - '.github/workflows/fea-distribution.yml'
+      - 'package.json'
+      - 'README.md'
+      - 'README.en.md'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'scripts/distribution-smoke.mjs'
+      - 'test/distribution.test.mjs'
+      - 'docs/PRODUCTION-READINESS.md'
+      - '.github/workflows/fea-distribution.yml'
+      - 'package.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-package-acceptance:
+    name: Pack/install/scan (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-15-intel]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run all unit tests
+        run: npm test
+      - name: Offline npm tarball installation and CLI smoke
+        env:
+          FEA_DISTRIBUTION_REPORT: .fea/distribution-${{ runner.os }}.json
+        run: npm run distribution:smoke
+      - name: Preserve sanitized package acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fea-distribution-${{ matrix.os }}
+          path: .fea/distribution-*.json
+          if-no-files-found: ignore
+          retention-days: 7
