@@ -25,19 +25,19 @@ FEA 当前聚焦 Electron：**静态检查 → 出具脱敏证据 → 阻止不�
 ## 可复现的关键数据
 
 <div align="center">
-  <img src="assets/fea-demo-exposure.svg" alt="自有合成 Electron 演示样本：8 类规则中，基线发现 10 项，改进样本发现 0 项" width="95%" />
+  <img src="assets/fea-demo-exposure.svg" alt="自有合成 Electron 演示样本：9 类规则中，基线发现多项，改进样本发现 0 项" width="95%" />
 </div>
 
 | 指标 | 本仓库可复现结果 | 代表什么 |
 | :--- | ---: | :--- |
-| **10 → 0** | 演示样本的扫描发现数 | 人为植入的暴露项在改进样本中被移除 |
-| **8 类** | FEA001–FEA008 | Source Map、私钥格式标记、内部配置、调试资源、测试资源 |
-| **66 / 66** | 本地自动化测试通过 | 包括 ASAR 异常输入、安全边界与跨平台降级的测试 |
+| **多项 → 0** | 演示样本的扫描发现数 | 人为植入的暴露项在改进样本中被移除 |
+| **9 类** | FEA001–FEA009 | Source Map、私钥、内部配置、调试资源、测试资源、客户端授权、硬编码密钥、未混淆逻辑、客户端数据暴露 |
+| **多项** | 本地自动化测试通过 | 包括 ASAR 异常输入、安全边界与跨平台降级的测试 |
 | **2 种** | 目录 / `.asar` | 当前受限支持的 Electron 资源输入形态 |
 
 **数据来源与复现：** `npm test && npm run demo && npm run demo:check`。图表由 [`demo/check.mjs`](demo/check.mjs) 生成的 `comparison.json` 自动绘制，具体规则计数可在运行后的 `demo/generated/reports/comparison/comparison.json` 查看。脚本在 [`scripts/render-readme-chart.mjs`](scripts/render-readme-chart.mjs)。
 
-> ⚠️ **演示数据不是商业软件安全测评。** “6 → 0”只反映同一合成样本中可观察的信息暴露项变化，不代表逆向破解概率下降 100%、真实产品没有漏洞，或对 AI 逆向具备可量化抵抗力。
+> ⚠️ **演示数据不是商业软件安全测评。** 发现数从多项降到 0 只反映同一合成样本中可观察的信息暴露项变化，不代表逆向破解概率下降 100%、真实产品没有漏洞，或对 AI 逆向具备可量化抵抗力。
 
 ## FEA 如何工作
 
@@ -58,10 +58,11 @@ flowchart LR
 
 | 功能 | 现阶段能力 | 限制 |
 | :--- | :--- | :--- |
-| **Audit** | 扫描 Electron 资源目录和受限 ASAR、检测五类发布风险 | 不是通用 EXE/安装器解析器 |
+| **Audit** | 扫描 Electron 资源目录和受限 ASAR，检测 FEA001–FEA009 | 不是通用 EXE/安装器解析器 |
 | **Verify** | 对脱敏报告执行策略检查，在 CI 中阻断失败样本 | 报告来源必须由可信构建流水线保证 |
 | **Compare** | 输出加固前后 JSON / Markdown 变化报告 | 不是 AI 攻击成功率测试 |
-| **Protect** | 对支持的 Forge JSON 文件提供只读建议、预览/应用 ASAR 选项、精确回滚 | 不执行未知配置、不代表软件已经加密或完成最终产物验证 |
+| **Protect** | 对支持的 Forge JSON 文件提供预览/应用 ASAR + 推荐完整性 Fuses、精确回滚 | 不执行未知配置、不代表软件已经加密 |
+| **Migrate / Obfuscate** | 生成服务端迁移与可选混淆建议 | 不自动改写代码 |
 | **Signature (Preview)** | Windows 下通过系统工具检查 Authenticode 状态及可选签发者指纹 | 非 Windows 返回“未评估”；不负责签名证书申请 |
 
 ## Arena v0.3（实验性评测协议）
@@ -115,7 +116,7 @@ node src/cli.mjs sarif demo/generated/reports/baseline/report.json --out demo/ge
 
 ## v0.4：受控 Forge 配置加固与安全回滚（实验性）
 
-在 Electron Forge **7.4+ 的 JSON 配置**上，可以预览并应用唯一允许的改动：将 `packagerConfig.asar` 设置为 `true`。不会执行 `forge.config.js`、自动加入不兼容的 Electron Fuse、修改业务逻辑或修改已签名产物。完整流程保留审查和精确回滚：
+在 Electron Forge **7.4+ 的 JSON 配置**上，可以预览并应用允许的改动：将 `packagerConfig.asar` 设置为 `true`，并添加/合并推荐的 Electron Fuses（`EnableEmbeddedAsarIntegrityValidation` 与 `OnlyLoadAppFromAsar`）。不会执行 `forge.config.js`、修改业务逻辑或修改已签名产物。完整流程保留审查和精确回滚：
 
 ```bash
 node src/cli.mjs protect preview ./my-forge-project --out ./forge-plan.json
@@ -127,7 +128,7 @@ npm run protect:demo
 
 应用前将检查文件 SHA-256，拒绝过期计划、重复 JSON 键、链接文件与含 JS/TS 配置的项目。备份必须放在**项目目录之外**，避免提交私有构建配置。回滚时会检查修改后的文件哈希，若其他进程更改过配置则拒绝覆盖。仅支持受信任、扫描时不会并发修改的本地工作目录。
 
-**ASAR 不是加密，打开 ASAR 也不等于抵御逆向。** 本阶段不自动删除源映射，不自动配置完整性 Fuse，也不证明打包成功。详见 [受控配置修改说明](docs/PROTECT-AUTOMATION.md)。
+**ASAR 不是加密，打开 ASAR 也不等于抵御逆向。** 本阶段不自动删除源映射，也不证明打包成功。详见 [受控配置修改说明](docs/PROTECT-AUTOMATION.md)。
 
 ## v0.4.1：Fuses 兼容性与解包产物检查（实验性）
 
@@ -165,6 +166,10 @@ cat demo/generated/reports/comparison/comparison.md
 node src/cli.mjs init --out my-fea.json
 node src/cli.mjs scan ./my-electron-resources --config my-fea.json --out ./audit/resources
 node src/cli.mjs verify ./audit/resources/report.json --policy my-fea.json
+
+# 迁移与混淆建议
+node src/cli.mjs migrate ./audit/resources/report.json --out ./audit/migrate
+node src/cli.mjs obfuscate ./audit/resources/report.json --out ./audit/obfuscate
 
 # v0.2：只读 ASAR 扫描（需要实际存在的 .asar 文件）
 node src/cli.mjs asar-scan ./my-app.asar --config my-fea.json --out ./audit/asar
