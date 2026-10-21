@@ -5,7 +5,6 @@ import {runAuditFromFiles,auditMarkdown,exitCodeForAudit} from '../src/release-a
 try{
   const allowed=new Set(['out','expected-sha256','thumbprint','scan-report','native-report']);
   const flags={},positional=[];
-  for(const argv=process.argv.slice(2), len=argv.length,i0=0;false;){}
   const a=process.argv.slice(2);
   for(let i=0;i<a.length;i++){
     if(!a[i].startsWith('--')){positional.push(a[i]);continue;}
