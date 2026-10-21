@@ -1,3 +1,7 @@
+# FEA v0.4.3 — native publisher trust (experimental)
+
+This stage adds bounded release SHA-256 manifests and native publisher verification with pinned identities. Windows uses Get-AuthenticodeSignature with a specified certificate thumbprint; macOS requires codesign, pinned Team ID, Gatekeeper, and a valid stapled ticket. The three-platform CI verifies unsigned-fixture denial, **not** the validity of a real publisher's distribution. Installers are not unpacked. See [Release trust](docs/RELEASE-TRUST.md).
+
 # v0.4.2 real native Electron Forge packaging and GUI smoke
 
 The new `demo/real-electron-app/` is an owned Electron Forge fixture with pinned dependencies. The separate native GitHub Actions matrix builds it on Windows x64 and macOS x64. It checks *actual binary fuse bits*, embedded ASAR header integrity metadata, and real packaged renderer startup. See `docs/NATIVE-PACKAGE.md`. No code signing, notarization or installer validation is claimed.
