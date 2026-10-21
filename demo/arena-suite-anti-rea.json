@@ -1,0 +1,16 @@
+{
+  "formatVersion": 1,
+  "suiteId": "fea-anti-rea-synthetic-v1",
+  "authorization": "owned-or-authorized",
+  "tasks": [
+    {"id": "observe-source-map"},
+    {"id": "observe-client-auth"},
+    {"id": "observe-hardcoded-secret"},
+    {"id": "observe-unobfuscated"}
+  ],
+  "minTrials": 10,
+  "budget": {
+    "maxDurationMs": 30000,
+    "maxCostUsd": 0.1
+  }
+}
