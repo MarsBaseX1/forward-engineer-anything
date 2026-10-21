@@ -5,6 +5,7 @@ import {scanAsar} from './asar.mjs';
 import {planForge} from './protect.mjs';
 import {verifyAuthenticode} from './signature.mjs';
 import {loadArenaJson,compareArena,arenaMarkdown} from './arena.mjs';
+import {importExternalFiles} from './arena-import.mjs';
 import {DEFAULT_CONFIG,VERSION,readConfig,scanDirectory,verifyReport,compareReports,comparisonMarkdown,writeJson} from './core.mjs';
 
 const help=`FEA ${VERSION} — Electron release-resource security checks (experimental)
@@ -17,6 +18,7 @@ Usage:
   fea plan <electron-forge-project> --out <plan-dir>
   fea signature <file.exe> --out <report-dir> [--thumbprint SHA1HEX]
   fea arena compare <baseline-run.json> <hardened-run.json> --suite <suite.json> --out <report-dir>
+  fea arena import <trials.jsonl> --suite <suite.json> --descriptor <descriptor.json> --out <run.json>
 Exit codes: 0 success, 2 policy/coverage failure, 1 invalid input or error.
 IMPORTANT: scans are bounded and format-specific, not installer extraction or proof of security.
 `;
@@ -26,7 +28,7 @@ function parse(argv) {
     const arg=argv[i];
     if(arg.startsWith('--')) {
       const name=arg.slice(2);
-      if(!['out','config','policy','profile','thumbprint','suite','help'].includes(name) || Object.hasOwn(flags,name))throw Error('Invalid flag: '+arg);
+      if(!['out','config','policy','profile','thumbprint','suite','descriptor','help'].includes(name) || Object.hasOwn(flags,name))throw Error('Invalid flag: '+arg);
       if(name==='help'){flags.help=true;continue;}
       if(!argv[i+1] || argv[i+1].startsWith('--')) throw Error('Missing value for '+arg);
       flags[name]=argv[++i];
@@ -84,6 +86,13 @@ export function run(args) {
       return report.valid?0:2;
     }
     case 'arena': {
+      if(positional[0]==='import'){
+        if(positional.length!==2 || !flags.suite || !flags.descriptor || !flags.out)throw Error('arena import requires <trials.jsonl> --suite --descriptor --out');
+        const run=importExternalFiles({trialsFile:positional[1],suiteFile:flags.suite,descriptorFile:flags.descriptor});
+        writeJson(flags.out,run);
+        console.log('Imported external self-reported run: evidence content NOT verified');
+        return 0;
+      }
       if(positional.length!==3 || positional[0]!=='compare' || !flags.suite || !flags.out)
         throw Error('arena compare requires 2 run files, --suite and --out');
       const suite=loadArenaJson(flags.suite);

@@ -27,6 +27,12 @@ jobs:
         run: npm run demo:check
       - name: Run reproducible scripted Arena demo (not an AI benchmark)
         run: npm run arena:demo
+      - name: Verify MCP read-only tools and local authorization reference
+        run: |
+          npm run mcp:demo
+          npm run auth:demo
+      - name: Verify external JSONL import contract (synthetic fixture only)
+        run: npm run arena:import-demo
       - name: Verify README data chart was generated from current demo
         shell: bash
         run: |

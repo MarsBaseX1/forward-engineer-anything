@@ -32,7 +32,7 @@ FEA 当前聚焦 Electron：**静态检查 → 出具脱敏证据 → 阻止不�
 | :--- | ---: | :--- |
 | **6 → 0** | 演示样本的扫描发现数 | 人为植入的暴露项在改进样本中被移除 |
 | **5 类** | FEA001–FEA005 | Source Map、私钥格式标记、内部配置、调试资源、测试资源 |
-| **20 / 20** | 本地自动化测试通过 | 包括 ASAR 异常输入、安全边界与跨平台降级的测试 |
+| **28 / 28** | 本地自动化测试通过 | 包括 ASAR 异常输入、安全边界与跨平台降级的测试 |
 | **2 种** | 目录 / `.asar` | 当前受限支持的 Electron 资源输入形态 |
 
 **数据来源与复现：** `npm test && npm run demo && npm run demo:check`。图表由 [`demo/check.mjs`](demo/check.mjs) 生成的 `comparison.json` 自动绘制，具体规则计数可在运行后的 `demo/generated/reports/comparison/comparison.json` 查看。脚本在 [`scripts/render-readme-chart.mjs`](scripts/render-readme-chart.mjs)。
@@ -74,6 +74,19 @@ node src/cli.mjs arena compare demo/generated/reports/arena/baseline.json demo/g
 ```
 
 [评测协议与限制](docs/ARENA.md)。原始品牌图标依旧使用 `assets/fea-icon.png`，保持原样。
+
+## v0.3.1：只读 MCP、授权参考与 Agent 日志接入
+
+新增三种只读 MCP 工具，供 Agent 查看开发者预先选择的脱敏审计报告，不允许读取任意文件或执行目标程序。服务端授权参考项目独立校验租户、资源、操作、过期、撤销和额度。Arena 可导入外部 Agent 自行记录的 JSONL 试验日志与证据摘要，供相同种子/预算的配对比较。
+
+```bash
+npm test
+npm run demo && npm run demo:check
+npm run mcp:demo && npm run auth:demo && npm run arena:import-demo
+node src/mcp.mjs --report demo/generated/reports/hardened/report.json --policy .fea.json
+```
+
+**重要边界：** 随仓库提供的导入样本是脚本化合成数据，不曾运行真实 AI 逆向分析。外部日志未经独立验证。参见 [MCP](docs/MCP.md)、[授权示例](docs/AUTHORIZATION.md)、[Agent 接口](docs/AGENT-ADAPTER.md)。原始图标 `assets/fea-icon.png` 保持不变。
 
 ## 快速开始
 
