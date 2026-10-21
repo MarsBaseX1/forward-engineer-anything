@@ -3,7 +3,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {parseUniqueJson} from './asar.mjs';
 
-// This experimental patcher only changes reviewed JSON build settings. It does NOT
+// This experimental patcher only changes one JSON build setting. It does NOT
 // execute a project's JavaScript, run a build, change already-signed artifacts,
 // install dependencies, or claim that ASAR encrypts client code.
 const SHA=/^[0-9a-f]{64}$/;
@@ -31,6 +31,7 @@ function checkForge(root){
   const pkg=loadJson(path.join(root,'package.json'));
   const deps={...pkg.value.dependencies,...pkg.value.devDependencies};
   const forgeVersion=deps['@electron-forge/cli'];
+  // Narrow, reproducible support range: pinned/standard caret Forge 7.4+.
   const v=typeof forgeVersion==='string'?/^[~^]?7\.(\d+)\.(\d+)(?:$|[-+][a-zA-Z0-9.-]+$)/.exec(forgeVersion):null;
   if(!v||Number(v[1])<4)throw Error('PROTECT_FORGE_VERSION_UNSUPPORTED');
   if(['forge.config.js','forge.config.cjs','forge.config.mjs','forge.config.ts'].some(p=>fs.existsSync(path.join(root,p))))
@@ -44,37 +45,13 @@ function checkForge(root){
   const forge=standalone?chosen.value:chosen.value.config?.forge;
   if(!plain(forge))throw Error('PROTECT_INVALID_FORGE_CONFIG');
   if(forge.packagerConfig!==undefined&&!plain(forge.packagerConfig))throw Error('PROTECT_PACKAGER_CONFIG_UNSUPPORTED');
-  const currentAsar=forge.packagerConfig?.asar;
-  if(currentAsar!==undefined && currentAsar!==false && currentAsar!==true && !plain(currentAsar))
+  const current=forge.packagerConfig?.asar;
+  if(current!==undefined && current!==false && current!==true && !plain(current))
     throw Error('PROTECT_ASAR_SETTING_UNSUPPORTED');
   const edited=JSON.parse(JSON.stringify(chosen.value));
   const editedForge=standalone?edited:edited.config.forge;
   editedForge.packagerConfig??={};
-  const changes=[];
-  if(currentAsar===undefined||currentAsar===false){
-    editedForge.packagerConfig.asar=true;
-    changes.push({operation:'set',setting:'packagerConfig.asar',value:true});
-  }
-  // Recommend and apply key Electron Fuses for ASAR integrity when the plugins array is plain JSON.
-  const plugins=editedForge.plugins;
-  const recommendedFuses={EnableEmbeddedAsarIntegrityValidation:true,OnlyLoadAppFromAsar:true};
-  let fusePluginIndex=-1;
-  if(Array.isArray(plugins)){
-    fusePluginIndex=plugins.findIndex(p=>Array.isArray(p)&&p[0]==='@electron-forge/plugin-fuses');
-  }
-  if(fusePluginIndex===-1){
-    editedForge.plugins??=[];
-    editedForge.plugins.push(['@electron-forge/plugin-fuses',{version:1,fuses:recommendedFuses}]);
-    changes.push({operation:'add',setting:'plugins.@electron-forge/plugin-fuses',value:recommendedFuses});
-  } else {
-    const existing=plugins[fusePluginIndex][1]||{};
-    const existingFuses=existing.fuses||{};
-    const updated={...existingFuses,...recommendedFuses};
-    if(JSON.stringify(existingFuses)!==JSON.stringify(updated)){
-      plugins[fusePluginIndex][1]={...existing,fuses:updated};
-      changes.push({operation:'merge',setting:'plugins.@electron-forge/plugin-fuses.fuses',value:recommendedFuses});
-    }
-  }
+  if(current===undefined||current===false)editedForge.packagerConfig.asar=true;
   const original=chosen.bytes.toString('utf8');
   const indentation=/^\s+"[^"\n]+"\s*:/m.exec(original)?.[0].match(/^\s*/)?.[0]??'  ';
   const newline=original.includes('\r\n')?'\r\n':'\n';
@@ -82,21 +59,34 @@ function checkForge(root){
   const rendered=JSON.stringify(edited,null,Math.min(8,Math.max(1,indentation.length)))
     .replace(/\n/g,newline)+(hadNewline?newline:'');
   const afterBytes=Buffer.from(rendered);
-  const changed=changes.length>0;
+  const changed=current===undefined||current===false;
   return {root,relative,beforeBytes:chosen.bytes,afterBytes:changed?afterBytes:chosen.bytes,
-    changed,stat:regularFile(path.join(root,relative)),forgeVersion,changes};
+    changed,stat:regularFile(path.join(root,relative)),forgeVersion};
 }
 export function previewHardening(project){
   const result=checkForge(rootOf(project));
-  return {formatVersion:1,kind:'fea-forge-json-asar-fuses-v1',supported:true,
+  return {formatVersion:1,kind:'fea-forge-json-asar-v1',supported:true,
     configFile:result.relative,fromSha256:digest(result.beforeBytes),toSha256:digest(result.afterBytes),
-    changeRequired:result.changed,changes:result.changes,
-    notice:'Preview only. ASAR is packaging, not encryption. Fuses raise the cost of loading unpacked or modified resources. Review, rebuild, test, sign and verify FINAL artifacts.'};
+    changeRequired:result.changed,changes:result.changed?[{operation:'set',setting:'packagerConfig.asar',value:true}]:[],
+    notice:'Preview only. ASAR is packaging, not encryption. Review changes, rebuild, test, sign and verify the FINAL artifacts.'};
 }
 function privateExternalState(root,state){
   if(typeof state!=='string'||!state.trim())throw Error('PROTECT_STATE_DIRECTORY_REQUIRED');
-  const directory=path.resolve(state);
+  // Resolve OS-managed ancestors (e.g. macOS /var -> /private/var) before
+  // testing containment. A textual path comparison across aliases is unsafe.
+  const specified=path.resolve(state);
+  let existing=specified;
+  while(!fs.existsSync(existing)){
+    const next=path.dirname(existing);
+    if(next===existing)throw Error('PROTECT_STATE_PATH_INVALID');
+    existing=next;
+  }
+  // A user-selected state directory itself must not be an existing symlink.
+  if(fs.lstatSync(specified,{throwIfNoEntry:false})?.isSymbolicLink())throw Error('PROTECT_STATE_SYMLINK');
+  const directory=path.resolve(fs.realpathSync(existing),path.relative(existing,specified));
   if(inside(root,directory))throw Error('PROTECT_STATE_MUST_BE_OUTSIDE_PROJECT');
+  // Reject symlinks in the canonicalized directory chain. We assume a trusted,
+  // non-concurrently modified build host; this is not a sandbox for hostile FS.
   let cursor=directory;
   while(true){
     try {if(fs.lstatSync(cursor).isSymbolicLink())throw Error('PROTECT_STATE_SYMLINK');}
@@ -110,6 +100,7 @@ function atomicReplace(file,bytes,mode){
   const tmp=path.join(path.dirname(file),'.fea-'+crypto.randomUUID()+'.tmp');
   try{fs.writeFileSync(tmp,bytes,{flag:'wx',mode:mode&0o777});
     fs.chmodSync(tmp,mode&0o777);
+    // Refuse concurrent content changes (best-effort for trusted static build worktrees).
     fs.renameSync(tmp,file);
   }finally{if(fs.existsSync(tmp))fs.unlinkSync(tmp);}
 }
@@ -131,11 +122,12 @@ export function applyHardening(project,plan,state){
     originalMode:live.stat.mode&0o777,rolledBack:false};
   fs.writeFileSync(path.join(session,'receipt.json'),JSON.stringify(receipt,null,2)+'\n',{flag:'wx',mode:0o600});
   const target=path.join(root,live.relative);
+  // Confirm file did not change during backup preparation.
   if(digest(fs.readFileSync(target))!==expected.fromSha256)throw Error('PROTECT_INPUT_CHANGED');
   atomicReplace(target,live.afterBytes,receipt.originalMode);
   return {changed:true,configFile:live.relative,receipt:path.join(session,'receipt.json'),
     before:expected.fromSha256,after:expected.toSha256,
-    notice:'Config edit only (asar + recommended integrity fuses). Build, run regression tests, then sign and verify final artifacts.'};
+    notice:'Config edit only. Build, run regression tests, then sign and verify final artifacts.'};
 }
 export function rollbackHardening(project,receiptPath){
   const root=rootOf(project),receiptFile=path.resolve(receiptPath);
