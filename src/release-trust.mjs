@@ -66,7 +66,7 @@ export function snapshotArtifact(target,{expectedSha256}={}){
     files:files.length,totalBytes:total,snapshotSha256,
     expectedDigestPinned:pinned,digestMatch:pinned?snapshotSha256===expectedSha256.toLowerCase():null,
     entries:files,coverage:{complete:true,symlinksAllowed:false},
-    notice:'Paths are SHA-256-derived IDs. Hashes are not signed attestations; no installer payload was extracted or verified.'};
+    notice:'For a single file, snapshotSha256 is the raw file SHA-256; for a directory, it is a deterministic tree-manifest hash. Paths are SHA-256-derived IDs. Hashes are not signed attestations; no installer payload was extracted or verified.'};
 }
 
 export function assessWindowsOutput(payload,expectedThumbprint){
