@@ -82,7 +82,7 @@ test('audits a clean package without extracting or executing it', t => {
   const report = auditPackageTarball(f.tarball, f.manifestPath);
   assert.equal(report.result, 'pass');
   assert.equal(report.package.name, '@marsbasex/fea');
-  assert.equal(report.package.files, 8);
+  assert.equal(report.package.files, 9);
   assert.equal(report.checks.pathSafetyAndRegularFilesOnly, 'pass');
   assert.equal(report.checks.lifecycleScriptsAbsent, 'pass');
 });
