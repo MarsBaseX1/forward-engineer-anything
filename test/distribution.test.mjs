@@ -35,6 +35,6 @@ test('documentation distinguishes package smoke from publication signature or no
 });
 
 test('CLI banner agrees with the stable package version and does not call itself experimental',()=>{
-  assert.match(cli,/Electron release-resource security checks \\(stable\\)/);
+  assert.ok(cli.includes('Electron release-resource security checks (stable)'));
   assert.doesNotMatch(cli,/experimental/i);
 });
