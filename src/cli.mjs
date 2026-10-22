@@ -16,7 +16,7 @@ import {generateObfuscationSuggestions,obfuscationMarkdown} from './obfuscation-
 import {generateRuntimeSuggestions,runtimeMarkdown} from './runtime-suggestions.mjs';
 import {DEFAULT_CONFIG,VERSION,readConfig,scanDirectory,verifyReport,compareReports,comparisonMarkdown,writeJson} from './core.mjs';
 
-const help=`FEA ${VERSION} — Electron release-resource security checks (experimental)
+const help=`FEA ${VERSION} — Electron release-resource security checks (stable)
 Usage:
   fea init --profile electron-resources [--out .fea.json]
   fea scan <resources-dir> --config .fea.json --out <report-dir>
