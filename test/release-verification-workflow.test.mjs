@@ -27,7 +27,7 @@ test('independent release verification downloads and validates assets before pub
   assert.ok(workflow.includes('verify-native-macos'));
   assert.ok(workflow.includes('FEA_WINDOWS_SIGNER_THUMBPRINT'));
   assert.ok(workflow.includes('FEA_MAC_TEAM_ID'));
-  assert.ok(workflow.includes('stapler'));
+  assert.ok(workflow.includes('stapled ticket'));
   assert.ok(workflow.includes('SHA-1 and SHA-512 match npm metadata'));
   assert.ok(workflow.includes('actions/upload-artifact@v4'));
   assert.ok(workflow.includes('actions/download-artifact@v4'));
