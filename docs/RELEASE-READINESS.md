@@ -1,6 +1,6 @@
-# FEA v0.4.1 — Release readiness (experimental)
+# FEA — Release readiness (v1.0.0 stable)
 
-This phase adds **version-declaration compatibility checks** and **read-only inspection of a developer-provided unpacked Electron build**. It does **not** build Electron, execute untrusted projects, flip or read embedded binary fuse bits, verify macOS notarization, validate an installer, or prove reverse-engineering resistance.
+This document covers **version-declaration compatibility checks** and **read-only inspection of a developer-provided unpacked Electron build**. It does **not** build Electron, execute untrusted projects, flip or read embedded binary fuse bits, verify macOS notarization, validate an installer, or prove reverse-engineering resistance.
 
 ## 1. Version compatibility (static declarations only)
 
@@ -38,6 +38,6 @@ npm test
 
 `release:demo` verifies declared prerequisites, a synthetic unpacked PE/ASAR fixture, and the *owned demo's* Electron main-process startup contract in an isolated `vm` with a fake Electron API. The test checks that a window is created with sandboxing, context isolation and Node integration disabled. **No GUI or actual packaged Electron executable is launched.** Do not run this VM-based fixture helper on untrusted third-party code.
 
-## Remaining work before production claims
+## Known limits
 
 Actual Electron Forge packaging and signed binary checks on native hosts; independently verifying embedded ASAR header hashes and fuse bits; real GUI smoke tests in platform-specific CI; signer and notarization verification; installer format handling; protecting against concurrently mutating build inputs. Failures and `unassessed` checks must not be presented as evidence of resistance to reverse engineering.
