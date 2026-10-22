@@ -108,28 +108,50 @@ jobs:
             echo "- Draft: \`$is_draft\`"
             echo "- Source commit: \`$source_sha\`"
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Download exact assets using the authenticated GitHub API
+      - name: Download exact release assets and any native installers
         env:
           GH_TOKEN: ${{ github.token }}
+          PACKAGE_AUDIT_ASSET_ID: ${{ steps.release.outputs.package_audit_asset_id }}
         shell: bash
         run: |
           set -euo pipefail
           dir="$RUNNER_TEMP/fea-release-assets"
-          mkdir -p "$dir"
+          native_dir="$RUNNER_TEMP/fea-native-release-assets"
+          mkdir -p "$dir" "$native_dir"
           for pair in \
             "${{ steps.release.outputs.tarball_asset_id }}|marsbasex-fea-$FEA_RELEASE_VERSION.tgz" \
             "${{ steps.release.outputs.npm_pack_asset_id }}|npm-pack.json" \
             "${{ steps.release.outputs.checksums_asset_id }}|SHA256SUMS.txt"; do
-            asset_id="${pair%%|*}"
-            asset_name="${pair#*|}"
+            asset_id="\${pair%%|*}"
+            asset_name="\${pair#*|}"
             gh api -H "Accept: application/octet-stream" \
               "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" > "$dir/$asset_name"
           done
-      - name: Pass downloaded files to a separate read-only verification job
+          if [[ -n "$PACKAGE_AUDIT_ASSET_ID" ]]; then
+            gh api -H "Accept: application/octet-stream" \
+              "repos/$GITHUB_REPOSITORY/releases/assets/$PACKAGE_AUDIT_ASSET_ID" > "$dir/package-content-audit.json"
+          fi
+          jq '[.assets[] | select(.name | test("\\.(exe|msi|dmg|pkg)$"; "i")) | {id, name, digest, size}]' \
+            "$RUNNER_TEMP/fea-release.json" > "$native_dir/native-assets.json"
+          while IFS= read -r row; do
+            [[ -z "$row" ]] && continue
+            asset_id="$(jq -r '.id' <<<"$row")"
+            asset_name="$(jq -r '.name' <<<"$row")"
+            gh api -H "Accept: application/octet-stream" \
+              "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" > "$native_dir/$asset_name"
+          done < <(jq -c '.[]' "$native_dir/native-assets.json")
+      - name: Pass npm release assets to the read-only verifier
         uses: actions/upload-artifact@v4
         with:
           name: fea-release-assets-to-verify
           path: ${{ runner.temp }}/fea-release-assets/*
+          if-no-files-found: error
+          retention-days: 1
+      - name: Pass native installers to isolated platform verifiers
+        uses: actions/upload-artifact@v4
+        with:
+          name: fea-native-release-assets
+          path: ${{ runner.temp }}/fea-native-release-assets/*
           if-no-files-found: error
           retention-days: 1
 
