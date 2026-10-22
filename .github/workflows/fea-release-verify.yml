@@ -38,6 +38,8 @@ jobs:
       release_id: ${{ steps.release.outputs.release_id }}
       release_is_draft: ${{ steps.release.outputs.release_is_draft }}
       source_sha: ${{ steps.release.outputs.source_sha }}
+      package_audit_asset_id: ${{ steps.release.outputs.package_audit_asset_id }}
+      native_asset_count: ${{ steps.release.outputs.native_asset_count }}
     env:
       FEA_RELEASE_VERSION: ${{ github.event.inputs.version || '1.0.0' }}
     steps:
@@ -68,25 +70,38 @@ jobs:
             echo "Release metadata does not identify the expected version and a full source commit." >&2
             exit 1
           fi
-          if [[ "$(jq '.assets | length' <<<"$release")" != "3" ]]; then
-            echo "Expected exactly three release assets." >&2
-            exit 1
-          fi
-          tarball_asset_id="$(jq -r --arg name "marsbasex-fea-$FEA_RELEASE_VERSION.tgz" '.assets[] | select(.name == $name) | .id' <<<"$release")"
-          npm_pack_asset_id="$(jq -r '.assets[] | select(.name == "npm-pack.json") | .id' <<<"$release")"
-          checksums_asset_id="$(jq -r '.assets[] | select(.name == "SHA256SUMS.txt") | .id' <<<"$release")"
+          tarball_asset_id="$(jq -r --arg name "marsbasex-fea-$FEA_RELEASE_VERSION.tgz" '[.assets[] | select(.name == $name)] | if length == 1 then .[0].id else empty end' <<<"$release")"
+          npm_pack_asset_id="$(jq -r '[.assets[] | select(.name == "npm-pack.json")] | if length == 1 then .[0].id else empty end' <<<"$release")"
+          checksums_asset_id="$(jq -r '[.assets[] | select(.name == "SHA256SUMS.txt")] | if length == 1 then .[0].id else empty end' <<<"$release")"
+          package_audit_asset_id="$(jq -r '[.assets[] | select(.name == "package-content-audit.json")] | if length == 1 then .[0].id elif length == 0 then "" else "duplicate" end' <<<"$release")"
           for id in "$tarball_asset_id" "$npm_pack_asset_id" "$checksums_asset_id"; do
             if [[ ! "$id" =~ ^[0-9]+$ ]]; then
               echo "A required release asset ID is missing or ambiguous." >&2
               exit 1
             fi
           done
+          if [[ "$package_audit_asset_id" == "duplicate" ]]; then
+            echo "Duplicate package-content-audit.json assets are not allowed." >&2
+            exit 1
+          fi
+          unknown_assets="$(jq -r --arg tarball "marsbasex-fea-$FEA_RELEASE_VERSION.tgz" '.assets[].name | select(. != $tarball and . != "npm-pack.json" and . != "package-content-audit.json" and . != "SHA256SUMS.txt")' <<<"$release")"
+          while IFS= read -r name; do
+            [[ -z "$name" ]] && continue
+            if [[ ! "$name" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,180}\.(exe|msi|dmg|pkg)$ ]]; then
+              echo "Unexpected or unsafe release asset name: $name" >&2
+              exit 1
+            fi
+          done <<<"$unknown_assets"
+          native_asset_count="$(jq '[.assets[] | select(.name | test("\\.(exe|msi|dmg|pkg)$"; "i"))] | length' <<<"$release")"
+          printf '%s\n' "$release" > "$RUNNER_TEMP/fea-release.json"
           echo "release_id=$release_id" >> "$GITHUB_OUTPUT"
           echo "release_is_draft=$is_draft" >> "$GITHUB_OUTPUT"
           echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
           echo "tarball_asset_id=$tarball_asset_id" >> "$GITHUB_OUTPUT"
           echo "npm_pack_asset_id=$npm_pack_asset_id" >> "$GITHUB_OUTPUT"
           echo "checksums_asset_id=$checksums_asset_id" >> "$GITHUB_OUTPUT"
+          echo "package_audit_asset_id=$package_audit_asset_id" >> "$GITHUB_OUTPUT"
+          echo "native_asset_count=$native_asset_count" >> "$GITHUB_OUTPUT"
           {
             echo "### Release under verification"
             echo "- Tag: \`$tag\`"
