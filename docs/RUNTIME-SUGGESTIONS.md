@@ -1,4 +1,4 @@
-# FEA runtime protection suggestions (experimental)
+# FEA runtime protection suggestions (v1.0.0 stable)
 
 The `runtime` command produces reviewable suggestions for raising the cost of runtime observation and tampering. It does **not** inject code, hook processes, or claim that client-side checks are unbypassable.
 
