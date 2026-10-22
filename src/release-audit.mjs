@@ -66,10 +66,14 @@ export function auditRelease(file,opts={}){
     expectedDigestPinned:snap.expectedDigestPinned,digestMatch:snap.digestMatch,
     notice:'Expected digest must originate from a separately trusted release source.'};
   let publisher={status:'unassessed',notice:'Publisher verification unavailable or not requested for this artifact.'};
-  if(format.kind==='windows-pe'&&opts.publisher!==false){
+  if(['windows-pe','windows-msi-cfb'].includes(format.kind)&&opts.publisher!==false){
     const r=verifyPublisher(file,{platform:'win32',expectedThumbprint:opts.expectedThumbprint});
     publisher={status:r.passed?'pass':r.status==='rejected'?'fail':'unassessed',nativeOsAssessed:r.status!=='unassessed',
-      expectedSignerConfigured:!!opts.expectedThumbprint,notice:'Windows Authenticode requires a native host and pinned signer certificate.'};
+      expectedSignerConfigured:!!opts.expectedThumbprint,notice:'Windows Authenticode requires a native Windows host and pinned signer certificate; both PE EXE and MSI are checked.'};
+  } else if(['apple-udif-dmg','apple-xar-pkg'].includes(format.kind)&&opts.publisher!==false){
+    const r=verifyPublisher(file,{platform:'darwin',expectedTeamId:opts.expectedTeamId,requireNotarization:true});
+    publisher={status:r.passed?'pass':r.status==='rejected'?'fail':'unassessed',nativeOsAssessed:r.status!=='unassessed',
+      expectedSignerConfigured:!!opts.expectedTeamId,notice:'Apple signature, pinned Team ID, Gatekeeper assessment and stapled notarization ticket require a native macOS host.'};
   }
   const scan=opts.scanEvidence===undefined?{status:'unassessed',notice:'No trusted release-resource scan attached.'}:summarizeScanEvidence(opts.scanEvidence);
   const native=opts.nativeEvidence===undefined?{status:'unassessed',notice:'No native fuse/GUI evidence attached.'}:summarizeNativeEvidence(opts.nativeEvidence);
@@ -81,9 +85,9 @@ export function auditRelease(file,opts={}){
     limitations:['no-installer-extraction','no-msi-dmg-pkg-signature-chain','no-independent-evidence-authentication','no-reverse-engineering-guarantee'],
     notice:'Experimental read-only gate. A clean imported report cannot establish verified security.'};
 }
-export function runAuditFromFiles(file,{expectedSha256,expectedThumbprint,scanReport,nativeReport}={}){
+export function runAuditFromFiles(file,{expectedSha256,expectedThumbprint,expectedTeamId,scanReport,nativeReport}={}){
   if(expectedSha256!==undefined&&!SHA.test(expectedSha256))throw Error('RELEASE_AUDIT_SHA256_PIN_INVALID');
-  return auditRelease(file,{expectedSha256,expectedThumbprint,
+  return auditRelease(file,{expectedSha256,expectedThumbprint,expectedTeamId,
     scanEvidence:scanReport?load(scanReport):undefined,nativeEvidence:nativeReport?load(nativeReport):undefined});
 }
 export function auditMarkdown(r){

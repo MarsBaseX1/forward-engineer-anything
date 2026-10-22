@@ -60,13 +60,13 @@ export function snapshotArtifact(target,{expectedSha256}={}){
   }
   if(st.isFile())add(absolute,'.',st);else walk(absolute,'',0);
   bounded(files.length>0,'TRUST_EMPTY_ARTIFACT');
-  const snapshotSha256=sha(files.map(f=>`${f.pathId}:${f.size}:${f.sha256}\n`).join(''));
+  const snapshotSha256=st.isFile()?files[0].sha256:sha(files.map(f=>`${f.pathId}:${f.size}:${f.sha256}\n`).join(''));
   const pinned=expectedSha256!==undefined;
   return {formatVersion:1,kind:'fea-release-evidence-manifest',inputKind:st.isFile()?'opaque-file':'directory',
     files:files.length,totalBytes:total,snapshotSha256,
     expectedDigestPinned:pinned,digestMatch:pinned?snapshotSha256===expectedSha256.toLowerCase():null,
     entries:files,coverage:{complete:true,symlinksAllowed:false},
-    notice:'Paths are SHA-256-derived IDs. Hashes are not signed attestations; no installer payload was extracted or verified.'};
+    notice:'For a single file, snapshotSha256 is the raw file SHA-256; for a directory, it is a deterministic tree-manifest hash. Paths are SHA-256-derived IDs. Hashes are not signed attestations; no installer payload was extracted or verified.'};
 }
 
 export function assessWindowsOutput(payload,expectedThumbprint){
@@ -80,9 +80,12 @@ export function assessWindowsOutput(payload,expectedThumbprint){
     notice:'Windows OS Authenticode status with a pinned signer certificate. SmartScreen reputation and complete installer contents remain unassessed.'};
 }
 
-export function assessMacOutputs(outputs,expectedTeamId,{requireNotarization=true}={}){
+export function assessMacOutputs(outputs,expectedTeamId,{requireNotarization=true}={}) {
   bounded(TEAM.test(expectedTeamId??''),'TRUST_MAC_TEAM_PIN_REQUIRED');
-  const teamMatch=/^TeamIdentifier=(\S+)\s*$/m.exec(outputs?.details??'')?.[1]===expectedTeamId;
+  const details=String(outputs?.details??'');
+  const teamId=/^TeamIdentifier=(\S+)\s*$/m.exec(details)?.[1] ??
+    /Developer ID (?:Installer|Application):[^\n]*\(([A-Z0-9]{10})\)/.exec(details)?.[1];
+  const teamMatch=teamId===expectedTeamId;
   const signatureOk=outputs?.codesign===true;
   const gatekeeperOk=outputs?.gatekeeper===true;
   const ticketOk=outputs?.stapled===true;
@@ -90,7 +93,7 @@ export function assessMacOutputs(outputs,expectedTeamId,{requireNotarization=tru
   return {status:passed?'verified':'rejected',passed,
     checks:{codeSignatureValid:signatureOk,expectedTeamMatched:teamMatch,gatekeeperAccepted:gatekeeperOk,
       stapledTicketValid:ticketOk},
-    notice:requireNotarization?'macOS signed app with pinned Team ID, Gatekeeper assessment and stapled notarization ticket check. No notary service submission is performed.':'macOS signed app with pinned Team ID and Gatekeeper assessment; notarization ticket NOT required by this policy.'};
+    notice:requireNotarization?'macOS signed artifact with pinned Team ID, Gatekeeper assessment and stapled notarization ticket check. No notary service submission is performed.':'macOS signed artifact with pinned Team ID and Gatekeeper assessment; notarization ticket NOT required by this policy.'};
 }
 
 // Runner injection is for unit tests; CLI calls only system binaries on the native host.
@@ -101,8 +104,9 @@ export function verifyPublisher(target,{platform=process.platform,expectedThumbp
     unassessed:['installer-inner-files','updates','malware','smartscreen-reputation'],
     notice:'Publisher identity not verified. Never interpret this as a successful security check.'};
   if(platform!==process.platform)return {...base,notice:'Native OS verifier required. Different-host check is unassessed.'};
-  if(platform==='win32'){
-    bounded(st.isFile()&&/\.exe$/i.test(absolute),'TRUST_WINDOWS_EXE_REQUIRED');
+  if(platform==='win32') {
+    const extension=path.extname(absolute).toLowerCase();
+    bounded(st.isFile()&&['.exe','.msi'].includes(extension),'TRUST_WINDOWS_SIGNED_INSTALLER_REQUIRED');
     if(!expectedThumbprint)return {...base,notice:'Expected signer thumbprint is required for a trusted result.'};
     bounded(THUMB.test(expectedThumbprint),'TRUST_WINDOWS_SIGNER_PIN_INVALID');
     const ps="$ErrorActionPreference='Stop'; try { $r = [Console]::In.ReadToEnd() | ConvertFrom-Json; $s=Get-AuthenticodeSignature -LiteralPath $r.path; [pscustomobject]@{status=[string]$s.Status;thumbprint=[string]$s.SignerCertificate.Thumbprint} | ConvertTo-Json -Compress } catch { [pscustomobject]@{status='Unassessed';thumbprint=''} | ConvertTo-Json -Compress; exit 2 }";
@@ -112,13 +116,28 @@ export function verifyPublisher(target,{platform=process.platform,expectedThumbp
     let payload;try{payload=JSON.parse(result.stdout.trim());}catch{return {...base,notice:'Malformed Windows signature verification output.'};}
     return {...base,...assessWindowsOutput(payload,expectedThumbprint)};
   }
-  bounded(st.isDirectory()&&absolute.toLowerCase().endsWith('.app'),'TRUST_MAC_APP_REQUIRED');
+  const extension=path.extname(absolute).toLowerCase();
+  const isApp=st.isDirectory()&&extension==='.app';
+  const isDmg=st.isFile()&&extension==='.dmg';
+  const isPkg=st.isFile()&&extension==='.pkg';
+  bounded(isApp||isDmg||isPkg,'TRUST_MAC_SIGNED_ARTIFACT_REQUIRED');
   if(!expectedTeamId)return {...base,notice:'Expected Apple Team ID is required for a trusted result.'};
   bounded(TEAM.test(expectedTeamId),'TRUST_MAC_TEAM_PIN_INVALID');
   const exec=(tool,args)=>runner(tool,args,{encoding:'utf8',timeout:30000,maxBuffer:65536});
-  const verify=exec('codesign',['--verify','--deep','--strict',absolute]);
-  const details=exec('codesign',['--display','--verbose=4',absolute]);
-  const gate=exec('spctl',['--assess','--type','execute','--verbose=4',absolute]);
+  let verify,details,gate;
+  if(isApp) {
+    verify=exec('codesign',['--verify','--deep','--strict',absolute]);
+    details=exec('codesign',['--display','--verbose=4',absolute]);
+    gate=exec('spctl',['--assess','--type','execute','--verbose=4',absolute]);
+  } else if(isDmg) {
+    verify=exec('codesign',['--verify','--verbose=4',absolute]);
+    details=exec('codesign',['--display','--verbose=4',absolute]);
+    gate=exec('spctl',['--assess','--type','open','--context','context:primary-signature','--verbose=4',absolute]);
+  } else {
+    verify=exec('pkgutil',['--check-signature',absolute]);
+    details=verify;
+    gate=exec('spctl',['--assess','--type','install','--verbose=4',absolute]);
+  }
   const ticket=requireNotarization?exec('xcrun',['stapler','validate',absolute]):null;
   const items=[verify,details,gate,...(ticket?[ticket]:[])];
   if(items.some(x=>x.error))return {...base,notice:'macOS system verifier unavailable or timed out; status unassessed.'};

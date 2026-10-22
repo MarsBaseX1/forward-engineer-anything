@@ -7,7 +7,7 @@ on:
       - 'package.json'
       - 'src/**'
       - 'test/**'
-      - 'scripts/distribution-smoke.mjs'
+      - 'scripts/**'
       - 'docs/**'
       - 'README.md'
       - 'README.en.md'
@@ -47,6 +47,16 @@ jobs:
         run: npm test
       - name: Verify actual offline npm tarball and installed CLI
         run: npm run distribution:smoke
+      - name: Audit the actual npm TAR content on the release-check runner
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          audit_dir="$RUNNER_TEMP/fea-package-audit"
+          mkdir -p "$audit_dir"
+          npm pack --ignore-scripts --json --pack-destination "$audit_dir" > "$audit_dir/npm-pack.json"
+          tarball="$(node -e "const p=require(process.argv[1]); process.stdout.write(p[0].filename)" "$audit_dir/npm-pack.json")"
+          node scripts/package-content-audit.mjs "$audit_dir/$tarball" --manifest "$audit_dir/npm-pack.json" --out "$audit_dir/package-content-audit.json"
       - name: Run release demos and report checks
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -149,6 +159,8 @@ jobs:
           }
           console.log(`Validated ${result[0].name}@${result[0].version} (${result[0].size} bytes)`);
           NODE
+          tarball="$(node -e "const p=require('./dist/npm-pack.json'); process.stdout.write(p[0].filename)")"
+          node scripts/package-content-audit.mjs "dist/$tarball" --manifest dist/npm-pack.json --out dist/package-content-audit.json
           (cd dist && sha256sum *.tgz npm-pack.json > SHA256SUMS.txt)
       - name: Attest release assets with GitHub build provenance
         uses: actions/attest@v4
