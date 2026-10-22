@@ -1,6 +1,6 @@
-# FEA v0.4.3 — Release provenance & publisher verification (experimental)
+# FEA — Release provenance & publisher verification (v1.0.0 stable)
 
-This stage adds **read-only** release snapshot evidence and native OS publisher verification. The result is not a signing service, notarization submission tool, antivirus scanner, or installer parser.
+This capability provides **read-only** release snapshot evidence and native OS publisher verification. The result is not a signing service, notarization submission tool, antivirus scanner, or installer parser.
 
 ## Artifact snapshot / independent digest pin
 
