@@ -7,6 +7,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const packageInfo = JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
 const src = fs.readFileSync(path.join(root,'scripts','distribution-smoke.mjs'),'utf8');
 const cli = fs.readFileSync(path.join(root,'src','cli.mjs'),'utf8');
+const workflow = fs.readFileSync(path.join(root,'.github','workflows','fea-distribution.yml'),'utf8');
 
 test('release candidate has a public installable CLI with an explicit content allowlist',()=>{
   assert.equal(packageInfo.private,false);
@@ -37,4 +38,10 @@ test('documentation distinguishes package smoke from publication signature or no
 test('CLI banner agrees with the stable package version and does not call itself experimental',()=>{
   assert.ok(cli.includes('Electron release-resource security checks (stable)'));
   assert.doesNotMatch(cli,/experimental/i);
+});
+
+test('distribution evidence is written to a visible artifact path',()=>{
+  assert.ok(workflow.includes('FEA_DISTRIBUTION_REPORT: artifacts/fea-distribution-${{ runner.os }}.json'));
+  assert.ok(workflow.includes('path: artifacts/fea-distribution-*.json'));
+  assert.doesNotMatch(workflow,/path:\s*\.fea\/distribution-/);
 });
