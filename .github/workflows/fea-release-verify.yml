@@ -105,8 +105,8 @@ jobs:
             "${{ steps.release.outputs.tarball_asset_id }}|marsbasex-fea-$FEA_RELEASE_VERSION.tgz" \
             "${{ steps.release.outputs.npm_pack_asset_id }}|npm-pack.json" \
             "${{ steps.release.outputs.checksums_asset_id }}|SHA256SUMS.txt"; do
-            asset_id="\${pair%%|*}"
-            asset_name="\${pair#*|}"
+            asset_id="${pair%%|*}"
+            asset_name="${pair#*|}"
             gh api -H "Accept: application/octet-stream" \
               "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" > "$dir/$asset_name"
           done
