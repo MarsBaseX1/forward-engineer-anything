@@ -10,6 +10,7 @@
   [![License](https://img.shields.io/badge/license-Apache--2.0-2dbfa4)](LICENSE)
   ![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A5%2020-294754)
   ![Version](https://img.shields.io/badge/version-v1.0.0-2d8f86)
+  [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ea4aaa)](https://github.com/sponsors/MarsBaseX1)
 
   **[简体中文](README.md) · [Quick start](#quick-start) · [Reproducible data](#reproducible-demo-data) · [Security limits](#what-fea-does-not-promise) · [Contributing](CONTRIBUTING.md)**
 </div>
