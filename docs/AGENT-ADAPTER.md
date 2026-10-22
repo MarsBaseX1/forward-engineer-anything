@@ -1,4 +1,4 @@
-# Arena external-agent log adapter — experimental
+# Arena external-agent log adapter (v1.0.0 stable)
 
 FEA deliberately does not install or automatically execute REA or other agents. For real evaluations, you operate the chosen agent **outside FEA**, with permission on **your own or explicitly authorized test binary**, fixed tool/model versions, recorded environment, validated task success criteria and a capped runtime/cost budget.
 
