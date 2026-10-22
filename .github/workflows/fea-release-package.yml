@@ -8,6 +8,7 @@ on:
       - 'src/**'
       - 'test/**'
       - 'scripts/distribution-smoke.mjs'
+      - 'scripts/package-security-audit.mjs'
       - 'docs/**'
       - 'README.md'
       - 'README.en.md'
