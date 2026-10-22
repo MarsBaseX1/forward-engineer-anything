@@ -151,21 +151,20 @@ jobs:
           NODE
           tarball="$(node -e "const p=require('./dist/npm-pack.json'); process.stdout.write(p[0].filename)")"
           node scripts/package-content-audit.mjs "dist/$tarball" --manifest dist/npm-pack.json --out dist/package-content-audit.json
-          (cd dist && sha256sum *.tgz npm-pack.json package-content-audit.json > SHA256SUMS.txt)
+          (cd dist && sha256sum *.tgz npm-pack.json > SHA256SUMS.txt)
       - name: Attest release assets with GitHub build provenance
         uses: actions/attest@v4
         with:
           subject-path: |
             dist/*.tgz
             dist/npm-pack.json
-            dist/package-content-audit.json
             dist/SHA256SUMS.txt
       - name: Create draft GitHub Release (not published)
         env:
           FEA_RELEASE_VERSION: ${{ inputs.version }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "v${FEA_RELEASE_VERSION}" dist/*.tgz dist/npm-pack.json dist/package-content-audit.json dist/SHA256SUMS.txt \
+          gh release create "v${FEA_RELEASE_VERSION}" dist/*.tgz dist/npm-pack.json dist/SHA256SUMS.txt \
             --draft \
             --target "$GITHUB_SHA" \
             --title "FEA v${FEA_RELEASE_VERSION}" \
