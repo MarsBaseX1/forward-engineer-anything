@@ -37,6 +37,8 @@
     "README.md",
     "README.en.md",
     "IMPLEMENTATION.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md"
   ]
 }

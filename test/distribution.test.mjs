@@ -6,6 +6,8 @@ import {fileURLToPath} from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const packageInfo = JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
 const src = fs.readFileSync(path.join(root,'scripts','distribution-smoke.mjs'),'utf8');
+const cli = fs.readFileSync(path.join(root,'src','cli.mjs'),'utf8');
+const workflow = fs.readFileSync(path.join(root,'.github','workflows','fea-distribution.yml'),'utf8');
 
 test('release candidate has a public installable CLI with an explicit content allowlist',()=>{
   assert.equal(packageInfo.private,false);
@@ -14,6 +16,8 @@ test('release candidate has a public installable CLI with an explicit content al
   assert(Array.isArray(packageInfo.files));
   assert(packageInfo.files.includes('src/'));
   assert(packageInfo.files.includes('assets/fea-icon.png'));
+  assert(packageInfo.files.includes('CHANGELOG.md'));
+  assert(packageInfo.files.includes('CONTRIBUTING.md'));
   for(const excluded of ['demo/','test/','.github/'])assert(!packageInfo.files.includes(excluded));
   assert.deepEqual(packageInfo.dependencies??{},{});
 });
@@ -29,4 +33,15 @@ test('offline package smoke never enables scripts or network package fetch',()=>
 test('documentation distinguishes package smoke from publication signature or notarization',()=>{
   const docs=fs.readFileSync(path.join(root,'docs','PRODUCTION-READINESS.md'),'utf8');
   for(const phrase of ['Release criteria','Publisher verification','Unassessed','npm run distribution:smoke'])assert(docs.includes(phrase));
+});
+
+test('CLI banner agrees with the stable package version and does not call itself experimental',()=>{
+  assert.ok(cli.includes('Electron release-resource security checks (stable)'));
+  assert.doesNotMatch(cli,/experimental/i);
+});
+
+test('distribution evidence is written to a visible artifact path',()=>{
+  assert.ok(workflow.includes('FEA_DISTRIBUTION_REPORT: artifacts/fea-distribution-${{ runner.os }}.json'));
+  assert.ok(workflow.includes('path: artifacts/fea-distribution-*.json'));
+  assert.doesNotMatch(workflow,/path:\s*\.fea\/distribution-/);
 });

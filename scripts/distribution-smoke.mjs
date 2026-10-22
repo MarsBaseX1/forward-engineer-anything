@@ -38,8 +38,18 @@ if (!npmCli || !fs.existsSync(npmCli)) {
     assert.equal(result.length, 1);
     const item = result[0];
     const included = new Set(item.files.map(f => f.path));
-    for (const required of ['src/cli.mjs','src/core.mjs','README.md','LICENSE','assets/fea-icon.png']) {
+    for (const required of ['src/cli.mjs','src/core.mjs','README.md','README.en.md','CHANGELOG.md','CONTRIBUTING.md','LICENSE','assets/fea-icon.png']) {
       assert(included.has(required), `Required distributable file missing: ${required}`);
+    }
+    for (const readme of ['README.md','README.en.md']) {
+      const markdown = fs.readFileSync(path.join(root, readme), 'utf8');
+      const localMarkdownLinks = [...markdown.matchAll(/\]\(([^)#]+\.md)(?:#[^)]+)?\)/g)]
+        .map(match => match[1])
+        .filter(target => !/^https?:\/\//i.test(target));
+      for (const link of localMarkdownLinks) {
+        const target = path.posix.normalize(path.posix.join(path.posix.dirname(readme), link.split('#')[0]));
+        assert(included.has(target), `README link target missing from npm tarball: ${target} (referenced by ${readme})`);
+      }
     }
     assert(included.size < 140, 'Unexpectedly large package manifest');
     assert([...included].every(f => !/(^|\/)(?:test|tests|demo|\.github|\.env|node_modules|tmp)(?:\/|$)/i.test(f)), 'Private or test-only files in npm tarball');
