@@ -40,13 +40,13 @@ jobs:
         run: npm test
       - name: Offline npm tarball installation and CLI smoke
         env:
-          FEA_DISTRIBUTION_REPORT: .fea/distribution-${{ runner.os }}.json
+          FEA_DISTRIBUTION_REPORT: artifacts/fea-distribution-${{ runner.os }}.json
         run: npm run distribution:smoke
       - name: Preserve sanitized package acceptance evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: fea-distribution-${{ matrix.os }}
-          path: .fea/distribution-*.json
+          path: artifacts/fea-distribution-*.json
           if-no-files-found: ignore
           retention-days: 7
