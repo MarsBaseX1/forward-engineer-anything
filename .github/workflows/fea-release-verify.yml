@@ -68,10 +68,6 @@ jobs:
             echo "Release metadata does not identify the expected version and a full source commit." >&2
             exit 1
           fi
-          if [[ "$(jq '.assets | length' <<<"$release")" != "3" ]]; then
-            echo "Expected exactly three release assets." >&2
-            exit 1
-          fi
           tarball_asset_id="$(jq -r --arg name "marsbasex-fea-$FEA_RELEASE_VERSION.tgz" '.assets[] | select(.name == $name) | .id' <<<"$release")"
           npm_pack_asset_id="$(jq -r '.assets[] | select(.name == "npm-pack.json") | .id' <<<"$release")"
           checksums_asset_id="$(jq -r '.assets[] | select(.name == "SHA256SUMS.txt") | .id' <<<"$release")"
@@ -81,6 +77,22 @@ jobs:
               exit 1
             fi
           done
+          unknown_assets="$(jq -r --arg tarball "marsbasex-fea-$FEA_RELEASE_VERSION.tgz" '.assets[].name | select(. != $tarball and . != "npm-pack.json" and . != "SHA256SUMS.txt")' <<<"$release")"
+          while IFS= read -r name; do
+            [[ -z "$name" ]] && continue
+            if [[ ! "$name" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,180}$ ]]; then
+              echo "Unexpected or unsafe release asset name: $name" >&2
+              exit 1
+            fi
+            lower="\${name,,}"
+            case "$lower" in
+              *.exe|*.msi|*.dmg|*.pkg) ;;
+              *) echo "Unsupported release asset type: $name" >&2; exit 1 ;;
+            esac
+          done <<<"$unknown_assets"
+          native_asset_count="$(jq '[.assets[] | select(.name | test("\\.(exe|msi|dmg|pkg)$"; "i"))] | length' <<<"$release")"
+          printf '%s\n' "$release" > "$RUNNER_TEMP/fea-release.json"
+          echo "native_asset_count=$native_asset_count" >> "$GITHUB_OUTPUT"
           echo "release_id=$release_id" >> "$GITHUB_OUTPUT"
           echo "release_is_draft=$is_draft" >> "$GITHUB_OUTPUT"
           echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
