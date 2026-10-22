@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import {snapshotArtifact,verifyPublisher,assessWindowsOutput,assessMacOutputs} from '../src/release-trust.mjs';
 const pin='A'.repeat(40),team='ABC1234XYZ';
 function setup(t){const root=fs.mkdtempSync(path.join(os.tmpdir(),'fea-trust-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));return root;}
@@ -12,6 +13,13 @@ test('manifest hash is repeatable and contains no plain file names',t=>{
  assert.equal(a.snapshotSha256,b.snapshotSha256);assert.equal(b.digestMatch,true);
  assert.equal(JSON.stringify(a).includes('safe secret.txt'),false);assert.equal(a.files,1);
 });
+test('single-file SHA-256 pin equals the ordinary file digest',t=>{
+ const root=setup(t),p=path.join(root,'release.msi');fs.writeFileSync(p,'signed installer bytes');
+ const report=snapshotArtifact(p);
+ assert.equal(report.snapshotSha256,crypto.createHash('sha256').update('signed installer bytes').digest('hex'));
+ assert.equal(snapshotArtifact(p,{expectedSha256:report.snapshotSha256}).digestMatch,true);
+});
+
 test('modified content fails independent SHA-256 pin',t=>{
  const root=setup(t),p=path.join(root,'bundle.exe');fs.writeFileSync(p,'one');
  const before=snapshotArtifact(p);
@@ -42,6 +50,9 @@ test('macOS verification requires trust, team and stapled notarization',()=>{
  assert.equal(assessMacOutputs({...ok,gatekeeper:false},team).passed,false);
  assert.equal(assessMacOutputs({...ok,details:'TeamIdentifier=OTHERTEAM1'},team).passed,false);
  assert.throws(()=>assessMacOutputs(ok,'BAD'),/TRUST_MAC_TEAM_PIN_REQUIRED/);
+ const pkg={codesign:true,details:'Status: signed by a certificate trusted by Apple\\nDeveloper ID Installer: MarsBaseX (ABC1234XYZ)',gatekeeper:true,stapled:true};
+ assert.equal(assessMacOutputs(pkg,team).passed,true);
+ assert.equal(assessMacOutputs({...pkg,stapled:false},team).passed,false);
 });
 test('non-native host, missing pin and bad inputs can never pass',t=>{
  const root=setup(t),exe=path.join(root,'app.exe');fs.writeFileSync(exe,'MZ');
