@@ -1,4 +1,4 @@
-# FEA SARIF / GitHub Code Scanning integration (v0.3.3 experimental)
+# FEA SARIF / GitHub Code Scanning integration (v1.0.0 stable)
 
 ## Supported workflow
 
