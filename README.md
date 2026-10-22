@@ -10,6 +10,7 @@
   [![License](https://img.shields.io/badge/license-Apache--2.0-2dbfa4)](LICENSE)
   ![Node](https://img.shields.io/badge/Node.js-%E2%89%A5%2020-294754)
   ![Version](https://img.shields.io/badge/version-v1.0.0-2d8f86)
+  [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ea4aaa)](https://github.com/sponsors/MarsBaseX1)
 
   **[English](README.en.md) · [5 分钟上手](#快速开始) · [真实演示数据](#可复现的关键数据) · [安全边界](#我们不承诺什么) · [参与贡献](CONTRIBUTING.md)**
 </div>
