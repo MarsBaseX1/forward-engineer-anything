@@ -9,13 +9,13 @@
   [![CI](https://github.com/MarsBaseX1/forward-engineer-anything/actions/workflows/fea-security.yml/badge.svg)](https://github.com/MarsBaseX1/forward-engineer-anything/actions/workflows/fea-security.yml)
   [![License](https://img.shields.io/badge/license-Apache--2.0-2dbfa4)](LICENSE)
   ![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A5%2020-294754)
-  ![Version](https://img.shields.io/badge/version-v1.0.0-2d8f86)
+  ![Version](https://img.shields.io/badge/version-v1.0.1-2d8f86)
   [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ea4aaa)](https://github.com/sponsors/MarsBaseX1)
 
   **[简体中文](README.md) · [Quick start](#quick-start) · [Reproducible data](#reproducible-demo-data) · [Security limits](#what-fea-does-not-promise) · [Contributing](CONTRIBUTING.md)**
 </div>
 
-> **v1.0.0 stable release:** FEA has completed its evolution from release-hygiene scanner to anti-REA hardening framework. Rules FEA001–FEA009, Forge automation, suggestion generators, and Arena evaluation protocol are now stable. See [CHANGELOG.md](CHANGELOG.md). Boundaries remain unchanged: FEA does not claim software is un-reverse-engineerable.
+> **v1.0.1 release update:** In addition to the stable FEA001–FEA009 rules, Forge automation, suggestion generators, and Arena evaluation capabilities, this release adds npm package auditing, an SPDX 2.3 SBOM, digest binding, and independent release verification. See [CHANGELOG.md](CHANGELOG.md). FEA does not claim software is un-reverse-engineerable.
 
 > **FEA (Forward Engineer Anything)** is an open-source protection engineering framework for desktop app authors. It helps teams identify unnecessarily exposed Electron assets, enforce reproducible release checks in CI, plan hardening, and compare observed findings before and after build improvements. **The goal is to raise the cost of REA-style AI-assisted reverse engineering and tampering—not to promise that code cannot be reverse engineered.**
 
@@ -104,7 +104,7 @@ On Windows, `node src/cli.mjs signature ./my-app.exe --out ./audit/signature --t
 - A successful scan does not prove that an app has no secrets or vulnerabilities. Client checks never replace server-side authorization.
 - Authenticity checks are not code encryption or protection against all local modifications.
 - Arbitrary EXE/MSI/DMG unpacking, automated protective code patches, or real AI resistance scores are not supported.
-- **v1.0.0 is a stable release**, not an independent security audit or certification. Validate supported artifact formats and failure modes before relying on it for a production gate.
+- **v1.0.1 strengthens release integrity**, but it is not an independent security audit or certification. Package auditing and provenance do not replace Windows code signing or macOS notarization.
 
 ## Roadmap and contribution
 
