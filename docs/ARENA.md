@@ -1,4 +1,4 @@
-# Arena v0.3 — paired trial evaluation (preview)
+# Arena — paired trial evaluation (v1.0.0 stable)
 
 This is an **evaluation-log analyzer**, not an autonomous reverse-engineering agent and not a benchmark of real AI resistance. Use only with software you own or are authorized to evaluate.
 
@@ -10,6 +10,6 @@ Schema: suite `{formatVersion:1,suiteId,authorization:"owned-or-authorized",task
 
 Results separate failures, budget-censored timeouts and infrastructure errors. The summary reports median success duration and median valid attempt cost; no model calls are bundled, no proof of software invulnerability is implied. No raw prompts, private keys or target file contents are emitted. Artifacts and evaluation evidence should be stored in access-controlled CI logs. For actual AI benchmarks, preserve runner version, permitted task definitions, input hashes, seed independence, wall time and usage records, and keep reserved tasks for validation.
 
-## v0.3.2 executable adapter
+## Executable adapter
 
 `arena execute` runs a locally selected, operator-trusted `.mjs` adapter with explicit owned/authorized-target acknowledgment, bounded paired trials and sanitized summary output. It does not sandbox or authenticate the adapter. See [ARENA-EXECUTOR.md](ARENA-EXECUTOR.md). The bundled observation demo is synthetic and is not a real AI attack benchmark.
