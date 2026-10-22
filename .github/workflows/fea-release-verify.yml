@@ -191,6 +191,28 @@ jobs:
             exit 1
           fi
           (cd "$FEA_ASSET_DIR" && sha256sum -c SHA256SUMS.txt)
+          if [[ -f "$FEA_ASSET_DIR/sbom.spdx.json" ]]; then
+            FEA_ASSET_DIR="$FEA_ASSET_DIR" FEA_RELEASE_VERSION="$FEA_RELEASE_VERSION" node --input-type=commonjs <<'NODE'
+          const assert = require('node:assert/strict');
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const dir = process.env.FEA_ASSET_DIR;
+          const version = process.env.FEA_RELEASE_VERSION;
+          const tarball = fs.readFileSync(path.join(dir, 'marsbasex-fea-' + version + '.tgz'));
+          const sha256 = crypto.createHash('sha256').update(tarball).digest('hex');
+          const sbom = JSON.parse(fs.readFileSync(path.join(dir, 'sbom.spdx.json'), 'utf8'));
+          const audit = JSON.parse(fs.readFileSync(path.join(dir, 'package-security-audit.json'), 'utf8'));
+          assert.equal(sbom.spdxVersion, 'SPDX-2.3');
+          assert.equal(sbom.packages[0].name, '@marsbasex/fea');
+          assert.equal(sbom.packages[0].versionInfo, version);
+          assert.equal(sbom.packages[0].checksums[0].checksumValue, sha256, 'SBOM does not describe the downloaded tarball');
+          assert.equal(audit.result, 'PASS', 'Package audit did not pass');
+          assert.equal(audit.package.sha256, sha256, 'Audit report does not match downloaded tarball');
+          assert.ok(audit.checks.length >= 10 && audit.checks.every(item => item.result === 'pass'));
+          console.log('SPDX SBOM and package audit are bound to the verified tarball SHA-256.');
+          NODE
+          fi
           FEA_ASSET_DIR="$FEA_ASSET_DIR" FEA_RELEASE_VERSION="$FEA_RELEASE_VERSION" node --input-type=commonjs <<'NODE'
           const assert = require('node:assert/strict');
           const crypto = require('node:crypto');
