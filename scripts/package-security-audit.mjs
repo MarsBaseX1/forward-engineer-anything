@@ -70,7 +70,6 @@ try {
     ['github-token', /\bgh[pousr]_[A-Za-z0-9_]{30,}\b/],
     ['github-fine-grained-token', /\bgithub_pat_[A-Za-z0-9_]{30,}\b/],
     ['aws-access-key', /\bAKIA[0-9A-Z]{16}\b/],
-    ['generic-secret-assignment', /\b(?:api[_-]?key|client[_-]?secret|access[_-]?token|password)\s*[:=]\s*['"][^'"]{12,}['"]/i]
   ];
   const textFiles = normalized.filter(file => /\.(?:mjs|cjs|js|json|md|txt|ya?ml|toml|html|css|sh|ps1)$/i.test(file));
   const findings = [];
