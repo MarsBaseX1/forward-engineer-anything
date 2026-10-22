@@ -159,6 +159,10 @@ jobs:
       FEA_RELEASE_VERSION: ${{ github.event.inputs.version || '1.0.0' }}
       FEA_SOURCE_SHA: ${{ needs.download-release.outputs.source_sha }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
@@ -238,6 +242,14 @@ jobs:
           for (const file of actualFiles) assert(manifestFiles.has(file), 'Unlisted file in tarball: ' + file);
           console.log('Verified @marsbasex/fea@' + version + ': ' + bytes.length + ' bytes, ' + actualFiles.size + ' files, SHA-1 and SHA-512 match npm metadata.');
           NODE
+      - name: Deep-inspect the downloaded npm tarball without extracting or executing it
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/package-content-audit.mjs \
+            "$FEA_ASSET_DIR/marsbasex-fea-$FEA_RELEASE_VERSION.tgz" \
+            --manifest "$FEA_ASSET_DIR/npm-pack.json" \
+            --out "$RUNNER_TEMP/package-content-audit.json"
       - name: Verify all three signed build-provenance attestations
         env:
           GH_TOKEN: ${{ github.token }}
