@@ -60,6 +60,14 @@ The `.github/workflows/fea-release-verify.yml` workflow runs on a separate GitHu
 
 The draft is promoted to a public release only if all of those checks pass. If verification fails, the publish job is skipped and the release remains a draft. A manual verification run defaults to verification-only; set `publish_after_verify` to true only when deliberately publishing an already-verified draft.
 
+## Package-content and native-signing gates
+
+The release workflow now runs a bounded gzip/TAR content audit on the generated npm package and repeats that audit against the actual downloaded release asset on a separate read-only runner. The audit checks path safety, archive structure, the npm pack manifest and integrity metadata, required files, lifecycle scripts, runtime dependencies, executable/sensitive files, high-confidence credential patterns, and active/remote SVG content. It does not extract or execute the archive, and its heuristic checks do not prove the absence of malware or secrets.
+
+The independent release gate also inventories optional native installer assets. Windows EXE/MSI files require a matching Authenticode signer thumbprint on a Windows runner. Apple DMG/PKG files require a matching Team ID, platform signature validation, Gatekeeper acceptance, and a stapled notarization ticket on macOS. Configure GitHub Actions secrets FEA_WINDOWS_SIGNER_THUMBPRINT and FEA_MAC_TEAM_ID before adding those asset types. The workflow verifies already-signed files; it does not sign binaries or submit them for notarization.
+
+See [RELEASE-HARDENING.md](RELEASE-HARDENING.md) for exact scope and limitations. The current v1.0.0 release contains only the npm CLI package, so native signature/notarization checks are not applicable to its assets.
+
 ## What this proves—and what it does not
 
 - **SHA-256 match:** the file matches the digest recorded in `SHA256SUMS.txt`.
