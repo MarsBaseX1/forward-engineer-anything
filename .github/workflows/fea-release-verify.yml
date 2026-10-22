@@ -327,7 +327,7 @@ jobs:
             $file = Join-Path $dir $item.name
             if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Downloaded asset missing: $($item.name)" }
             if ($item.digest -notmatch '^sha256:([0-9a-fA-F]{64})$') { throw "GitHub SHA-256 digest missing for $($item.name)" }
-            $expectedHash = $Matches[1].ToUpperInvariant()
+            $expectedHash = $item.digest.Substring(7).ToUpperInvariant()
             $actualHash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToUpperInvariant()
             if ($actualHash -ne $expectedHash) { throw "GitHub asset digest mismatch: $($item.name)" }
             if ((Get-Item -LiteralPath $file).Length -ne [long]$item.size) { throw "GitHub asset size mismatch: $($item.name)" }
@@ -398,7 +398,8 @@ jobs:
               echo "GitHub SHA-256 digest missing for $name" >&2
               exit 1
             fi
-            expected="${BASH_REMATCH[1],,}"
+            expected="${digest#sha256:}"
+            expected="${expected,,}"
             actual="$(shasum -a 256 "$file" | awk '{print $1}')"
             [[ "$actual" == "$expected" ]] || { echo "GitHub asset digest mismatch: $name" >&2; exit 1; }
             actual_size="$(wc -c < "$file" | tr -d ' ')"
