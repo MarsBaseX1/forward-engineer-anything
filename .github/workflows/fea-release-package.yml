@@ -1,0 +1,140 @@
+name: FEA draft release assets
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/fea-release-package.yml'
+      - 'package.json'
+      - 'src/**'
+      - 'test/**'
+      - 'scripts/distribution-smoke.mjs'
+      - 'docs/**'
+      - 'README.md'
+      - 'README.en.md'
+      - 'CHANGELOG.md'
+      - 'RELEASE-NOTES-*.md'
+      - 'demo/**'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Exact stable package.json version to prepare (for example 1.0.0)'
+        required: true
+        default: '1.0.0'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fea-draft-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Release checks (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-15-intel]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run unit and regression tests
+        run: npm test
+      - name: Verify actual offline npm tarball and installed CLI
+        run: npm run distribution:smoke
+      - name: Run release demos and report checks
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          npm run demo
+          npm run demo:check
+          npm run protect:demo
+          npm run sarif:demo
+          npm run release:audit-demo
+          npm run trust:demo
+
+  native-package:
+    name: Native Electron package verification (${{ matrix.os }})
+    needs: verify
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-15-intel]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify core tests
+        run: npm test
+      - name: Install exact-version Forge fixture dependencies
+        run: npm install --no-audit --no-fund --prefix demo/real-electron-app
+      - name: Build actual Electron package with Forge and ASAR fuses
+        run: npm run package --prefix demo/real-electron-app -- --arch=x64
+      - name: Verify packaged binary metadata and GUI startup
+        run: npm run native:verify
+      - name: Retain sanitized native verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fea-release-native-proof-${{ matrix.os }}
+          path: demo/generated/reports/real-electron/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  create-draft-release:
+    name: Create draft release with checksums
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    needs: [verify, native-package]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate version, release notes and unused tag
+        env:
+          FEA_RELEASE_VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ ! "$FEA_RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Only stable semantic versions are accepted." >&2
+            exit 1
+          fi
+          node -e "const p=require('./package.json'); if(p.version!==process.env.FEA_RELEASE_VERSION){console.error('Input version does not match package.json');process.exit(1)}"
+          test -f "RELEASE-NOTES-v${FEA_RELEASE_VERSION}.md"
+          if gh release view "v${FEA_RELEASE_VERSION}" >/dev/null 2>&1; then
+            echo "A release for this version already exists; refusing to overwrite it." >&2
+            exit 1
+          fi
+          if git ls-remote --exit-code origin "refs/tags/v${FEA_RELEASE_VERSION}" >/dev/null 2>&1; then
+            echo "The tag already exists; refusing to attach assets to an unverified tag." >&2
+            exit 1
+          fi
+      - name: Build npm tarball and manifest
+        run: |
+          mkdir -p dist
+          npm pack --ignore-scripts --json --pack-destination dist > dist/npm-pack.json
+          node -e "const fs=require('fs'); const x=JSON.parse(fs.readFileSync('dist/npm-pack.json','utf8')); if(x.length!==1 || !x[0].filename.endsWith('.tgz')) process.exit(1)"
+          (cd dist && sha256sum *.tgz npm-pack.json > SHA256SUMS.txt)
+      - name: Create draft GitHub Release (not published)
+        env:
+          FEA_RELEASE_VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${FEA_RELEASE_VERSION}" dist/*.tgz dist/npm-pack.json dist/SHA256SUMS.txt \
+            --draft \
+            --target "$GITHUB_SHA" \
+            --title "FEA v${FEA_RELEASE_VERSION}" \
+            --notes-file "RELEASE-NOTES-v${FEA_RELEASE_VERSION}.md"

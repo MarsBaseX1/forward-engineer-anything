@@ -8,6 +8,7 @@ const packageInfo = JSON.parse(fs.readFileSync(path.join(root,'package.json'),'u
 const src = fs.readFileSync(path.join(root,'scripts','distribution-smoke.mjs'),'utf8');
 const cli = fs.readFileSync(path.join(root,'src','cli.mjs'),'utf8');
 const workflow = fs.readFileSync(path.join(root,'.github','workflows','fea-distribution.yml'),'utf8');
+const releaseWorkflow = fs.readFileSync(path.join(root,'.github','workflows','fea-release-package.yml'),'utf8');
 
 test('release candidate has a public installable CLI with an explicit content allowlist',()=>{
   assert.equal(packageInfo.private,false);
@@ -44,4 +45,15 @@ test('distribution evidence is written to a visible artifact path',()=>{
   assert.ok(workflow.includes('FEA_DISTRIBUTION_REPORT: artifacts/fea-distribution-${{ runner.os }}.json'));
   assert.ok(workflow.includes('path: artifacts/fea-distribution-*.json'));
   assert.doesNotMatch(workflow,/path:\s*\.fea\/distribution-/);
+});
+
+test('release workflow creates only a draft after cross-platform and native checks',()=>{
+  assert.ok(releaseWorkflow.includes('workflow_dispatch:'));
+  assert.ok(releaseWorkflow.includes('os: [ubuntu-latest, windows-latest, macos-15-intel]'));
+  assert.ok(releaseWorkflow.includes('needs: [verify, native-package]'));
+  assert.ok(releaseWorkflow.includes('--draft'));
+  assert.ok(releaseWorkflow.includes('SHA256SUMS.txt'));
+  assert.ok(releaseWorkflow.includes('--target "$GITHUB_SHA"'));
+  assert.ok(releaseWorkflow.includes("github.ref == 'refs/heads/main'"));
+  assert.doesNotMatch(releaseWorkflow,/npm publish/i);
 });
