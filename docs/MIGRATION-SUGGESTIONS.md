@@ -1,4 +1,4 @@
-# FEA migration suggestions (experimental)
+# FEA migration suggestions (v1.0.0 stable)
 
 When a trusted scan report contains **FEA006** (client-side authorization/license judgment) or **FEA007** (hardcoded secret candidates), the `migrate` command produces reviewable architectural suggestions.
 
