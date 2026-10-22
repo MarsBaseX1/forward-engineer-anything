@@ -50,7 +50,7 @@ test('macOS verification requires trust, team and stapled notarization',()=>{
  assert.equal(assessMacOutputs({...ok,gatekeeper:false},team).passed,false);
  assert.equal(assessMacOutputs({...ok,details:'TeamIdentifier=OTHERTEAM1'},team).passed,false);
  assert.throws(()=>assessMacOutputs(ok,'BAD'),/TRUST_MAC_TEAM_PIN_REQUIRED/);
- const pkg={codesign:true,details:'Status: signed by a certificate trusted by Apple\\nDeveloper ID Installer: MarsBaseX (ABC1234XYZ)',gatekeeper:true,stapled:true};
+ const pkg={codesign:true,details:'Status: signed by a certificate trusted by Apple\nDeveloper ID Installer: MarsBaseX (ABC1234XYZ)',gatekeeper:true,stapled:true};
  assert.equal(assessMacOutputs(pkg,team).passed,true);
  assert.equal(assessMacOutputs({...pkg,stapled:false},team).passed,false);
 });
