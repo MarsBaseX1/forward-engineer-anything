@@ -1,0 +1,231 @@
+name: FEA independent release verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fea-release-verify.yml'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version to verify (for example 1.0.0)'
+        required: true
+        default: '1.0.0'
+        type: string
+      publish_after_verify:
+        description: 'Publish the draft only after every independent check passes'
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  attestations: read
+
+concurrency:
+  group: fea-independent-release-verification-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify downloaded release assets
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      attestations: read
+    outputs:
+      release_id: ${{ steps.release.outputs.release_id }}
+      release_is_draft: ${{ steps.release.outputs.release_is_draft }}
+      source_sha: ${{ steps.release.outputs.source_sha }}
+    env:
+      FEA_RELEASE_VERSION: ${{ github.event.inputs.version || '1.0.0' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Install current GitHub CLI and require patched attestation verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo mkdir -p -m 755 /etc/apt/keyrings
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg >/dev/null
+          sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null
+          sudo apt-get update
+          sudo apt-get install --yes gh
+          gh version
+          actual="$(gh version | awk 'NR==1 {print $3}')"
+          if [[ "$(printf '%s\n' '2.102.0' "$actual" | sort -V | head -n1)" != "2.102.0" ]]; then
+            echo "GitHub CLI 2.102.0 or newer is required for the patched signer-workflow identity check (found $actual)." >&2
+            exit 1
+          fi
+      - name: Resolve the existing release and pin its source commit
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$FEA_RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Expected a stable semantic version, got: $FEA_RELEASE_VERSION" >&2
+            exit 1
+          fi
+          json="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/v$FEA_RELEASE_VERSION")"
+          tag="$(jq -r '.tag_name' <<<"$json")"
+          release_id="$(jq -r '.id' <<<"$json")"
+          is_draft="$(jq -r '.draft' <<<"$json")"
+          source_sha="$(jq -r '.target_commitish' <<<"$json")"
+          if [[ "$tag" != "v$FEA_RELEASE_VERSION" || ! "$release_id" =~ ^[0-9]+$ || ! "$source_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Release metadata does not identify the expected version and a full source commit." >&2
+            exit 1
+          fi
+          echo "release_id=$release_id" >> "$GITHUB_OUTPUT"
+          echo "release_is_draft=$is_draft" >> "$GITHUB_OUTPUT"
+          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Release under verification"
+            echo "- Tag: \`$tag\`"
+            echo "- Draft: \`$is_draft\`"
+            echo "- Source commit: \`$source_sha\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Download assets from GitHub Release, not the build workspace
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/fea-release-assets"
+          gh release download "v$FEA_RELEASE_VERSION" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir "$RUNNER_TEMP/fea-release-assets"
+          echo "FEA_ASSET_DIR=$RUNNER_TEMP/fea-release-assets" >> "$GITHUB_ENV"
+      - name: Verify exact asset set, SHA-256, npm metadata and tarball contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_tarball="marsbasex-fea-$FEA_RELEASE_VERSION.tgz"
+          expected="$(printf '%s\n' "$expected_tarball" 'npm-pack.json' 'SHA256SUMS.txt' | LC_ALL=C sort)"
+          actual="$(find "$FEA_ASSET_DIR" -maxdepth 1 -type f -printf '%f\n' | LC_ALL=C sort)"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "Unexpected release asset set." >&2
+            printf 'Expected:\n%s\nActual:\n%s\n' "$expected" "$actual" >&2
+            exit 1
+          fi
+          (cd "$FEA_ASSET_DIR" && sha256sum -c SHA256SUMS.txt)
+          FEA_ASSET_DIR="$FEA_ASSET_DIR" FEA_RELEASE_VERSION="$FEA_RELEASE_VERSION" node --input-type=commonjs <<'NODE'
+          const assert = require('node:assert/strict');
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const { execFileSync } = require('node:child_process');
+          const dir = process.env.FEA_ASSET_DIR;
+          const version = process.env.FEA_RELEASE_VERSION;
+          const manifest = JSON.parse(fs.readFileSync(path.join(dir, 'npm-pack.json'), 'utf8'));
+          assert.equal(manifest.length, 1, 'Expected exactly one npm pack entry');
+          const item = manifest[0];
+          const filename = 'marsbasex-fea-' + version + '.tgz';
+          assert.equal(item.name, '@marsbasex/fea');
+          assert.equal(item.version, version);
+          assert.equal(item.filename, filename);
+          const tarballPath = path.join(dir, filename);
+          const bytes = fs.readFileSync(tarballPath);
+          assert.equal(bytes.length, item.size, 'Tarball size differs from npm-pack.json');
+          assert.equal(crypto.createHash('sha1').update(bytes).digest('hex'), item.shasum, 'npm shasum mismatch');
+          assert.equal('sha512-' + crypto.createHash('sha512').update(bytes).digest('base64'), item.integrity, 'npm integrity mismatch');
+          const manifestFiles = new Set(item.files.map(file => file.path));
+          const required = [
+            'src/cli.mjs', 'src/core.mjs', 'README.md', 'README.en.md',
+            'CHANGELOG.md', 'CONTRIBUTING.md', 'LICENSE', 'assets/fea-icon.png'
+          ];
+          for (const file of required) assert(manifestFiles.has(file), 'Required package file missing: ' + file);
+          assert(manifestFiles.size < 140, 'Unexpectedly large npm package');
+          for (const file of manifestFiles) {
+            assert(!/(^|\/)(?:test|tests|demo|\.github|node_modules|tmp)(?:\/|$)/i.test(file), 'Private/test file in package: ' + file);
+            assert(!/\.(?:pem|key|pfx|p12|map)$/i.test(file), 'Sensitive or source-map file in package: ' + file);
+          }
+          const entries = execFileSync('tar', ['-tzf', tarballPath], { encoding: 'utf8' })
+            .split(/\r?\n/).filter(Boolean).filter(entry => !entry.endsWith('/'));
+          const actualFiles = new Set(entries.map(entry => entry.replace(/^package\//, '')));
+          assert.equal(actualFiles.size, manifestFiles.size, 'Tarball file count differs from npm-pack.json');
+          for (const file of manifestFiles) assert(actualFiles.has(file), 'Manifest file absent from tarball: ' + file);
+          for (const file of actualFiles) assert(manifestFiles.has(file), 'Unlisted file in tarball: ' + file);
+          console.log('Verified @marsbasex/fea@' + version + ': ' + bytes.length + ' bytes, ' + actualFiles.size + ' files, SHA-1 and SHA-512 match npm metadata.');
+          NODE
+      - name: Verify all three signed build-provenance attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FEA_SOURCE_SHA: ${{ steps.release.outputs.source_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for asset in "marsbasex-fea-$FEA_RELEASE_VERSION.tgz" "npm-pack.json" "SHA256SUMS.txt"; do
+            echo "Verifying provenance for $asset"
+            gh attestation verify "$FEA_ASSET_DIR/$asset" \
+              --repo "$GITHUB_REPOSITORY" \
+              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/fea-release-package.yml" \
+              --source-ref refs/heads/main \
+              --source-digest "$FEA_SOURCE_SHA" \
+              --deny-self-hosted-runners
+          done
+      - name: Install downloaded tarball in a clean consumer and exercise CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          consumer="$RUNNER_TEMP/fea-release-consumer"
+          mkdir -p "$consumer"
+          npm install --offline --ignore-scripts --no-audit --no-fund \
+            --prefix "$consumer" "$FEA_ASSET_DIR/marsbasex-fea-$FEA_RELEASE_VERSION.tgz"
+          bin="$consumer/node_modules/.bin/fea"
+          "$bin" --help | tee "$RUNNER_TEMP/fea-cli-help.txt"
+          grep -Fq 'Electron release-resource security checks (stable)' "$RUNNER_TEMP/fea-cli-help.txt"
+          mkdir -p "$consumer/resources"
+          printf 'const greeting = "hello";\n' > "$consumer/resources/index.js"
+          (
+            cd "$consumer"
+            "$bin" init --out .fea.json
+            "$bin" scan resources --config .fea.json --out reports
+            "$bin" verify reports/report.json --policy .fea.json
+          )
+          echo "Independent downloaded-package install and CLI smoke test passed." >> "$GITHUB_STEP_SUMMARY"
+
+  publish:
+    name: Publish only after independent verification
+    needs: verify
+    if: >-
+      needs.verify.outputs.release_is_draft == 'true' &&
+      (github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.publish_after_verify == 'true'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      FEA_RELEASE_VERSION: ${{ github.event.inputs.version || '1.0.0' }}
+      FEA_RELEASE_ID: ${{ needs.verify.outputs.release_id }}
+      FEA_SOURCE_SHA: ${{ needs.verify.outputs.source_sha }}
+    steps:
+      - name: Publish the already-verified draft without replacing assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          before="$(gh api "repos/$GITHUB_REPOSITORY/releases/$FEA_RELEASE_ID")"
+          test "$(jq -r '.tag_name' <<<"$before")" = "v$FEA_RELEASE_VERSION"
+          test "$(jq -r '.draft' <<<"$before")" = "true"
+          test "$(jq -r '.target_commitish' <<<"$before")" = "$FEA_SOURCE_SHA"
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$FEA_RELEASE_ID" -F draft=false >/dev/null
+          after="$(gh api "repos/$GITHUB_REPOSITORY/releases/$FEA_RELEASE_ID")"
+          test "$(jq -r '.tag_name' <<<"$after")" = "v$FEA_RELEASE_VERSION"
+          test "$(jq -r '.draft' <<<"$after")" = "false"
+          test "$(jq -r '.published_at' <<<"$after")" != "null"
+          url="$(jq -r '.html_url' <<<"$after")"
+          {
+            echo "## FEA release published after independent verification"
+            echo "- Version: \`v$FEA_RELEASE_VERSION\`"
+            echo "- Verified source commit: \`$FEA_SOURCE_SHA\`"
+            echo "- Public release: $url"
+            echo "- Checks passed: SHA-256, npm metadata, tarball manifest, GitHub build provenance, isolated npm install and CLI smoke test."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Published verified release: $url"

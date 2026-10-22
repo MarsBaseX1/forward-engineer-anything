@@ -54,6 +54,12 @@ Replace the tarball filename with the exact filename you downloaded. Review the 
 
 The workflow creates attestations using GitHub's `actions/attest` action. If attestations are unavailable for a particular run, do not assume the assets are attested; investigate the workflow run instead.
 
+## Automated verification and publication gate
+
+The `.github/workflows/fea-release-verify.yml` workflow runs on a separate GitHub-hosted runner. It downloads the actual files from the GitHub Release, verifies the exact asset set and SHA-256 checksums, cross-checks the tarball against `npm-pack.json` (including npm SHA-1/SHA-512 metadata and the complete file list), verifies each build-provenance attestation against the expected repository, signer workflow, `main` ref and source commit, then installs the downloaded tarball in a clean consumer and exercises `fea init`, `fea scan` and `fea verify`.
+
+The draft is promoted to a public release only if all of those checks pass. If verification fails, the publish job is skipped and the release remains a draft. A manual verification run defaults to verification-only; set `publish_after_verify` to true only when deliberately publishing an already-verified draft.
+
 ## What this proves—and what it does not
 
 - **SHA-256 match:** the file matches the digest recorded in `SHA256SUMS.txt`.
