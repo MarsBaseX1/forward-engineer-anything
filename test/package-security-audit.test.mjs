@@ -11,7 +11,9 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 test('published npm tarball passes deep package audit and produces matching SPDX SBOM', () => {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'fea-package-audit-test-'));
   try {
-    const packText = execFileSync('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', temp], {
+    const npmCli = process.env.npm_execpath;
+    assert.ok(npmCli && fs.existsSync(npmCli), 'Run this test through npm so npm_execpath is available');
+    const packText = execFileSync(process.execPath, [npmCli, 'pack', '--ignore-scripts', '--json', '--pack-destination', temp], {
       cwd: root, encoding: 'utf8', timeout: 120000, maxBuffer: 2000000
     });
     const pack = JSON.parse(packText);
