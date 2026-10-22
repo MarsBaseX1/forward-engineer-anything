@@ -119,11 +119,11 @@ jobs:
             gh api -H "Accept: application/octet-stream" \
               "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" > "$dir/$asset_name"
           done
-          if [[ "\${{ steps.release.outputs.sbom_asset_id }}" =~ ^[0-9]+$ ]]; then
+          if [[ "${{ steps.release.outputs.sbom_asset_id }}" =~ ^[0-9]+$ ]]; then
             gh api -H "Accept: application/octet-stream" \
-              "repos/$GITHUB_REPOSITORY/releases/assets/\${{ steps.release.outputs.sbom_asset_id }}" > "$dir/sbom.spdx.json"
+              "repos/$GITHUB_REPOSITORY/releases/assets/${{ steps.release.outputs.sbom_asset_id }}" > "$dir/sbom.spdx.json"
             gh api -H "Accept: application/octet-stream" \
-              "repos/$GITHUB_REPOSITORY/releases/assets/\${{ steps.release.outputs.audit_asset_id }}" > "$dir/package-security-audit.json"
+              "repos/$GITHUB_REPOSITORY/releases/assets/${{ steps.release.outputs.audit_asset_id }}" > "$dir/package-security-audit.json"
           fi
       - name: Pass downloaded files to a separate read-only verification job
         uses: actions/upload-artifact@v4
@@ -240,7 +240,7 @@ jobs:
           if [[ -f "$FEA_ASSET_DIR/sbom.spdx.json" ]]; then
             assets+=("sbom.spdx.json" "package-security-audit.json")
           fi
-          for asset in "\${assets[@]}"; do
+          for asset in "${assets[@]}"; do
             echo "Verifying provenance for $asset"
             gh attestation verify "$FEA_ASSET_DIR/$asset" \
               --repo "$GITHUB_REPOSITORY" \
