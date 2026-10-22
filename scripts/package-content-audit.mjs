@@ -249,9 +249,13 @@ export function auditPackageTarball(tarballPath, manifestPath) {
 function main() {
   try {
     const args = parseArgs(process.argv.slice(2));
-    const report = auditPackageTarball(args.tarball, args.manifestPath);
-    fs.mkdirSync(path.dirname(path.resolve(args.out)), {recursive: true});
-    fs.writeFileSync(args.out, JSON.stringify(report, null, 2) + '\n');
+    const tarball = path.resolve(args.tarball);
+    const manifest = path.resolve(args.manifestPath);
+    const out = path.resolve(args.out);
+    if (out === tarball || out === manifest) fail('PACKAGE_AUDIT_OUTPUT_OVERLAPS_INPUT');
+    const report = auditPackageTarball(tarball, manifest);
+    fs.mkdirSync(path.dirname(out), {recursive: true});
+    fs.writeFileSync(out, JSON.stringify(report, null, 2) + '\n');
     console.log('FEA PACKAGE CONTENT AUDIT PASS', JSON.stringify(report.package));
   } catch (error) {
     console.error('FEA PACKAGE CONTENT AUDIT FAIL', error.message);
