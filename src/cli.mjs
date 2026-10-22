@@ -32,7 +32,7 @@ Usage:
   fea release compat <project-dir> --platform win32|darwin --out <report.json>
   fea release inspect <unpacked-root> --platform win32|darwin --config .fea.json --out <report-dir> [--asar-sha256 SHA256]
   fea release manifest <file-or-directory> --out <manifest.json> [--expected-sha256 SHA256]
-  fea release publisher <file.exe|app.app> --platform win32|darwin --out <report.json> [--thumbprint SHA1] [--team-id TEAMID]
+  fea release publisher <file.exe|file.msi|file.dmg|file.pkg|app.app> --platform win32|darwin --out <report.json> [--thumbprint SHA1] [--team-id TEAMID]
   fea migrate <trusted-report.json> --out <suggestions-dir>
   fea obfuscate <trusted-report.json> --out <suggestions-dir>
   fea runtime <trusted-report.json> --out <suggestions-dir>
