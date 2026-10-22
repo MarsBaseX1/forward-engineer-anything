@@ -71,9 +71,12 @@ Stop if any assertion fails. For another version, replace the tarball filename a
 Install a current GitHub CLI version that supports `gh attestation verify`. Then verify each attested asset:
 
 ```sh
-gh attestation verify ./marsbasex-fea-1.0.0.tgz --repo MarsBaseX1/forward-engineer-anything
+gh attestation verify ./marsbasex-fea-1.0.1.tgz --repo MarsBaseX1/forward-engineer-anything
 gh attestation verify ./npm-pack.json --repo MarsBaseX1/forward-engineer-anything
-gh attestation verify ./SHA256SUMS.txt --repo MarsBaseX1/forward-engineer-anything\n# For v1.0.1+ SBOM-enabled releases, also run:\ngh attestation verify ./sbom.spdx.json --repo MarsBaseX1/forward-engineer-anything\ngh attestation verify ./package-security-audit.json --repo MarsBaseX1/forward-engineer-anything
+gh attestation verify ./SHA256SUMS.txt --repo MarsBaseX1/forward-engineer-anything
+# For v1.0.1+ SBOM-enabled releases, also run:
+gh attestation verify ./sbom.spdx.json --repo MarsBaseX1/forward-engineer-anything
+gh attestation verify ./package-security-audit.json --repo MarsBaseX1/forward-engineer-anything
 ```
 
 Replace the tarball filename with the exact filename you downloaded. Review the verification output and confirm that the repository is `MarsBaseX1/forward-engineer-anything` and the provenance refers to the expected release workflow and source revision. Do not accept a successful hash check as a substitute for provenance verification.
