@@ -1,4 +1,4 @@
-# FEA MCP read-only server — v0.3.1 alpha
+# FEA MCP read-only server (v1.0.0 stable)
 
 This is a limited MCP stdio transport for **precomputed FEA reports**. Based on the MCP 2025-11-25 basic initialization and tool protocol; optionally negotiates 2025-06-18. Uses newline-delimited JSON-RPC on stdin/stdout and no npm dependencies. This is not a full MCP SDK implementation (no resources, sampling, tasks or HTTP transport).
 
