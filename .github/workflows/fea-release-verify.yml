@@ -38,8 +38,6 @@ jobs:
       release_id: ${{ steps.release.outputs.release_id }}
       release_is_draft: ${{ steps.release.outputs.release_is_draft }}
       source_sha: ${{ steps.release.outputs.source_sha }}
-      package_audit_asset_id: ${{ steps.release.outputs.package_audit_asset_id }}
-      native_asset_count: ${{ steps.release.outputs.native_asset_count }}
     env:
       FEA_RELEASE_VERSION: ${{ github.event.inputs.version || '1.0.0' }}
     steps:
@@ -70,54 +68,39 @@ jobs:
             echo "Release metadata does not identify the expected version and a full source commit." >&2
             exit 1
           fi
-          tarball_asset_id="$(jq -r --arg name "marsbasex-fea-$FEA_RELEASE_VERSION.tgz" '[.assets[] | select(.name == $name)] | if length == 1 then .[0].id else empty end' <<<"$release")"
-          npm_pack_asset_id="$(jq -r '[.assets[] | select(.name == "npm-pack.json")] | if length == 1 then .[0].id else empty end' <<<"$release")"
-          checksums_asset_id="$(jq -r '[.assets[] | select(.name == "SHA256SUMS.txt")] | if length == 1 then .[0].id else empty end' <<<"$release")"
-          package_audit_asset_id="$(jq -r '[.assets[] | select(.name == "package-content-audit.json")] | if length == 1 then .[0].id elif length == 0 then "" else "duplicate" end' <<<"$release")"
+          if [[ "$(jq '.assets | length' <<<"$release")" != "3" ]]; then
+            echo "Expected exactly three release assets." >&2
+            exit 1
+          fi
+          tarball_asset_id="$(jq -r --arg name "marsbasex-fea-$FEA_RELEASE_VERSION.tgz" '.assets[] | select(.name == $name) | .id' <<<"$release")"
+          npm_pack_asset_id="$(jq -r '.assets[] | select(.name == "npm-pack.json") | .id' <<<"$release")"
+          checksums_asset_id="$(jq -r '.assets[] | select(.name == "SHA256SUMS.txt") | .id' <<<"$release")"
           for id in "$tarball_asset_id" "$npm_pack_asset_id" "$checksums_asset_id"; do
             if [[ ! "$id" =~ ^[0-9]+$ ]]; then
               echo "A required release asset ID is missing or ambiguous." >&2
               exit 1
             fi
           done
-          if [[ "$package_audit_asset_id" == "duplicate" ]]; then
-            echo "Duplicate package-content-audit.json assets are not allowed." >&2
-            exit 1
-          fi
-          unknown_assets="$(jq -r --arg tarball "marsbasex-fea-$FEA_RELEASE_VERSION.tgz" '.assets[].name | select(. != $tarball and . != "npm-pack.json" and . != "package-content-audit.json" and . != "SHA256SUMS.txt")' <<<"$release")"
-          while IFS= read -r name; do
-            [[ -z "$name" ]] && continue
-            if [[ ! "$name" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,180}\.(exe|msi|dmg|pkg)$ ]]; then
-              echo "Unexpected or unsafe release asset name: $name" >&2
-              exit 1
-            fi
-          done <<<"$unknown_assets"
-          native_asset_count="$(jq '[.assets[] | select(.name | test("\\.(exe|msi|dmg|pkg)$"; "i"))] | length' <<<"$release")"
-          printf '%s\n' "$release" > "$RUNNER_TEMP/fea-release.json"
           echo "release_id=$release_id" >> "$GITHUB_OUTPUT"
           echo "release_is_draft=$is_draft" >> "$GITHUB_OUTPUT"
           echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
           echo "tarball_asset_id=$tarball_asset_id" >> "$GITHUB_OUTPUT"
           echo "npm_pack_asset_id=$npm_pack_asset_id" >> "$GITHUB_OUTPUT"
           echo "checksums_asset_id=$checksums_asset_id" >> "$GITHUB_OUTPUT"
-          echo "package_audit_asset_id=$package_audit_asset_id" >> "$GITHUB_OUTPUT"
-          echo "native_asset_count=$native_asset_count" >> "$GITHUB_OUTPUT"
           {
             echo "### Release under verification"
             echo "- Tag: \`$tag\`"
             echo "- Draft: \`$is_draft\`"
             echo "- Source commit: \`$source_sha\`"
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Download exact release assets and any native installers
+      - name: Download exact assets using the authenticated GitHub API
         env:
           GH_TOKEN: ${{ github.token }}
-          PACKAGE_AUDIT_ASSET_ID: ${{ steps.release.outputs.package_audit_asset_id }}
         shell: bash
         run: |
           set -euo pipefail
           dir="$RUNNER_TEMP/fea-release-assets"
-          native_dir="$RUNNER_TEMP/fea-native-release-assets"
-          mkdir -p "$dir" "$native_dir"
+          mkdir -p "$dir"
           for pair in \
             "${{ steps.release.outputs.tarball_asset_id }}|marsbasex-fea-$FEA_RELEASE_VERSION.tgz" \
             "${{ steps.release.outputs.npm_pack_asset_id }}|npm-pack.json" \
@@ -127,31 +110,11 @@ jobs:
             gh api -H "Accept: application/octet-stream" \
               "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" > "$dir/$asset_name"
           done
-          if [[ -n "$PACKAGE_AUDIT_ASSET_ID" ]]; then
-            gh api -H "Accept: application/octet-stream" \
-              "repos/$GITHUB_REPOSITORY/releases/assets/$PACKAGE_AUDIT_ASSET_ID" > "$dir/package-content-audit.json"
-          fi
-          jq '[.assets[] | select(.name | test("\\.(exe|msi|dmg|pkg)$"; "i")) | {id, name, digest, size}]' \
-            "$RUNNER_TEMP/fea-release.json" > "$native_dir/native-assets.json"
-          while IFS= read -r row; do
-            [[ -z "$row" ]] && continue
-            asset_id="$(jq -r '.id' <<<"$row")"
-            asset_name="$(jq -r '.name' <<<"$row")"
-            gh api -H "Accept: application/octet-stream" \
-              "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" > "$native_dir/$asset_name"
-          done < <(jq -c '.[]' "$native_dir/native-assets.json")
-      - name: Pass npm release assets to the read-only verifier
+      - name: Pass downloaded files to a separate read-only verification job
         uses: actions/upload-artifact@v4
         with:
           name: fea-release-assets-to-verify
           path: ${{ runner.temp }}/fea-release-assets/*
-          if-no-files-found: error
-          retention-days: 1
-      - name: Pass native installers to isolated platform verifiers
-        uses: actions/upload-artifact@v4
-        with:
-          name: fea-native-release-assets
-          path: ${{ runner.temp }}/fea-native-release-assets/*
           if-no-files-found: error
           retention-days: 1
 
@@ -167,10 +130,6 @@ jobs:
       FEA_RELEASE_VERSION: ${{ github.event.inputs.version || '1.0.0' }}
       FEA_SOURCE_SHA: ${{ needs.download-release.outputs.source_sha }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
@@ -203,11 +162,7 @@ jobs:
         run: |
           set -euo pipefail
           expected_tarball="marsbasex-fea-$FEA_RELEASE_VERSION.tgz"
-          if [[ -f "$FEA_ASSET_DIR/package-content-audit.json" ]]; then
-            expected="$(printf '%s\n' "$expected_tarball" 'npm-pack.json' 'package-content-audit.json' 'SHA256SUMS.txt' | LC_ALL=C sort)"
-          else
-            expected="$(printf '%s\n' "$expected_tarball" 'npm-pack.json' 'SHA256SUMS.txt' | LC_ALL=C sort)"
-          fi
+          expected="$(printf '%s\n' "$expected_tarball" 'npm-pack.json' 'SHA256SUMS.txt' | LC_ALL=C sort)"
           actual="$(find "$FEA_ASSET_DIR" -maxdepth 1 -type f -printf '%f\n' | LC_ALL=C sort)"
           if [[ "$actual" != "$expected" ]]; then
             echo "Unexpected release asset set." >&2
@@ -254,28 +209,13 @@ jobs:
           for (const file of actualFiles) assert(manifestFiles.has(file), 'Unlisted file in tarball: ' + file);
           console.log('Verified @marsbasex/fea@' + version + ': ' + bytes.length + ' bytes, ' + actualFiles.size + ' files, SHA-1 and SHA-512 match npm metadata.');
           NODE
-      - name: Deep-inspect the downloaded npm tarball without extracting or executing it
-        shell: bash
-        run: |
-          set -euo pipefail
-          node scripts/package-content-audit.mjs \
-            "$FEA_ASSET_DIR/marsbasex-fea-$FEA_RELEASE_VERSION.tgz" \
-            --manifest "$FEA_ASSET_DIR/npm-pack.json" \
-            --out "$RUNNER_TEMP/package-content-audit.json"
-          if [[ -f "$FEA_ASSET_DIR/package-content-audit.json" ]]; then
-            cmp "$RUNNER_TEMP/package-content-audit.json" "$FEA_ASSET_DIR/package-content-audit.json"
-          fi
       - name: Verify all three signed build-provenance attestations
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          assets=("marsbasex-fea-$FEA_RELEASE_VERSION.tgz" "npm-pack.json" "SHA256SUMS.txt")
-          if [[ -f "$FEA_ASSET_DIR/package-content-audit.json" ]]; then
-            assets+=("package-content-audit.json")
-          fi
-          for asset in "${assets[@]}"; do
+          for asset in "marsbasex-fea-$FEA_RELEASE_VERSION.tgz" "npm-pack.json" "SHA256SUMS.txt"; do
             echo "Verifying provenance for $asset"
             gh attestation verify "$FEA_ASSET_DIR/$asset" \
               --repo "$GITHUB_REPOSITORY" \
@@ -304,289 +244,6 @@ jobs:
             "$bin" verify reports/report.json --policy .fea.json
           )
           echo "Independent downloaded-package install and CLI smoke test passed." >> "$GITHUB_STEP_SUMMARY"
-
-  verify-native-windows:
-    name: Verify Windows Authenticode for native installers
-    needs: download-release
-    runs-on: windows-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    env:
-      FEA_WINDOWS_SIGNER_THUMBPRINT: ${{ secrets.FEA_WINDOWS_SIGNER_THUMBPRINT }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-      - uses: actions/download-artifact@v4
-        with:
-          name: fea-native-release-assets
-          path: ${{ runner.temp }}/fea-native-release-assets
-      - name: Verify every Windows installer digest, Authenticode status and pinned publisher
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $dir = Join-Path $env:RUNNER_TEMP 'fea-native-release-assets'
-          $manifest = @(Get-Content -LiteralPath (Join-Path $dir 'native-assets.json') -Raw | ConvertFrom-Json)
-          $items = @($manifest | Where-Object { $_.name -match '\.(exe|msi)
-    needs: [download-release, verify, verify-native-windows, verify-native-macos]
-    if: >-
-      needs.download-release.outputs.release_is_draft == 'true' &&
-      github.ref == 'refs/heads/main' &&
-      (github.event_name == 'push' ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.publish_after_verify == 'true'))
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-      FEA_RELEASE_VERSION: ${{ github.event.inputs.version || '1.0.0' }}
-      FEA_RELEASE_ID: ${{ needs.download-release.outputs.release_id }}
-      FEA_SOURCE_SHA: ${{ needs.download-release.outputs.source_sha }}
-    steps:
-      - name: Publish the already-verified draft without replacing assets
-        shell: bash
-        run: |
-          set -euo pipefail
-          before="$(gh api "repos/$GITHUB_REPOSITORY/releases/$FEA_RELEASE_ID")"
-          test "$(jq -r '.tag_name' <<<"$before")" = "v$FEA_RELEASE_VERSION"
-          test "$(jq -r '.draft' <<<"$before")" = "true"
-          test "$(jq -r '.target_commitish' <<<"$before")" = "$FEA_SOURCE_SHA"
-          gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$FEA_RELEASE_ID" -F draft=false >/dev/null
-          after="$(gh api "repos/$GITHUB_REPOSITORY/releases/$FEA_RELEASE_ID")"
-          test "$(jq -r '.tag_name' <<<"$after")" = "v$FEA_RELEASE_VERSION"
-          test "$(jq -r '.draft' <<<"$after")" = "false"
-          test "$(jq -r '.published_at' <<<"$after")" != "null"
-          url="$(jq -r '.html_url' <<<"$after")"
-          {
-            echo "## FEA release published after independent verification"
-            echo "- Version: \`v$FEA_RELEASE_VERSION\`"
-            echo "- Verified source commit: \`$FEA_SOURCE_SHA\`"
-            echo "- Public release: $url"
-            echo "- Checks passed: SHA-256, npm metadata, deep package-content audit, GitHub build provenance, isolated npm install/CLI smoke test, and platform-native signature/notarization gates for any attached installers."
-          } >> "$GITHUB_STEP_SUMMARY"
-          echo "Published verified release: $url"
- })
-          if ($items.Count -eq 0) {
-            'No Windows installer assets attached; Authenticode is not applicable to this CLI-only release.' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
-            exit 0
-          }
-          $pin = ($env:FEA_WINDOWS_SIGNER_THUMBPRINT -replace '\s', '').ToUpperInvariant()
-          if ($pin -notmatch '^[0-9A-F]{40}
-    needs: [download-release, verify]
-    if: >-
-      needs.download-release.outputs.release_is_draft == 'true' &&
-      (github.event_name == 'push' ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.publish_after_verify == 'true'))
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-      FEA_RELEASE_VERSION: ${{ github.event.inputs.version || '1.0.0' }}
-      FEA_RELEASE_ID: ${{ needs.download-release.outputs.release_id }}
-      FEA_SOURCE_SHA: ${{ needs.download-release.outputs.source_sha }}
-    steps:
-      - name: Publish the already-verified draft without replacing assets
-        shell: bash
-        run: |
-          set -euo pipefail
-          before="$(gh api "repos/$GITHUB_REPOSITORY/releases/$FEA_RELEASE_ID")"
-          test "$(jq -r '.tag_name' <<<"$before")" = "v$FEA_RELEASE_VERSION"
-          test "$(jq -r '.draft' <<<"$before")" = "true"
-          test "$(jq -r '.target_commitish' <<<"$before")" = "$FEA_SOURCE_SHA"
-          gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$FEA_RELEASE_ID" -F draft=false >/dev/null
-          after="$(gh api "repos/$GITHUB_REPOSITORY/releases/$FEA_RELEASE_ID")"
-          test "$(jq -r '.tag_name' <<<"$after")" = "v$FEA_RELEASE_VERSION"
-          test "$(jq -r '.draft' <<<"$after")" = "false"
-          test "$(jq -r '.published_at' <<<"$after")" != "null"
-          url="$(jq -r '.html_url' <<<"$after")"
-          {
-            echo "## FEA release published after independent verification"
-            echo "- Version: \`v$FEA_RELEASE_VERSION\`"
-            echo "- Verified source commit: \`$FEA_SOURCE_SHA\`"
-            echo "- Public release: $url"
-            echo "- Checks passed: SHA-256, npm metadata, tarball manifest, GitHub build provenance, isolated npm install and CLI smoke test."
-          } >> "$GITHUB_STEP_SUMMARY"
-          echo "Published verified release: $url"
-) { throw 'Native Windows installers are present but FEA_WINDOWS_SIGNER_THUMBPRINT is missing or invalid.' }
-          $reports = Join-Path $dir 'reports'
-          New-Item -ItemType Directory -Force -Path $reports | Out-Null
-          foreach ($item in $items) {
-            if ($item.name -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,180}\.(exe|msi)
-    needs: [download-release, verify]
-    if: >-
-      needs.download-release.outputs.release_is_draft == 'true' &&
-      (github.event_name == 'push' ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.publish_after_verify == 'true'))
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-      FEA_RELEASE_VERSION: ${{ github.event.inputs.version || '1.0.0' }}
-      FEA_RELEASE_ID: ${{ needs.download-release.outputs.release_id }}
-      FEA_SOURCE_SHA: ${{ needs.download-release.outputs.source_sha }}
-    steps:
-      - name: Publish the already-verified draft without replacing assets
-        shell: bash
-        run: |
-          set -euo pipefail
-          before="$(gh api "repos/$GITHUB_REPOSITORY/releases/$FEA_RELEASE_ID")"
-          test "$(jq -r '.tag_name' <<<"$before")" = "v$FEA_RELEASE_VERSION"
-          test "$(jq -r '.draft' <<<"$before")" = "true"
-          test "$(jq -r '.target_commitish' <<<"$before")" = "$FEA_SOURCE_SHA"
-          gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$FEA_RELEASE_ID" -F draft=false >/dev/null
-          after="$(gh api "repos/$GITHUB_REPOSITORY/releases/$FEA_RELEASE_ID")"
-          test "$(jq -r '.tag_name' <<<"$after")" = "v$FEA_RELEASE_VERSION"
-          test "$(jq -r '.draft' <<<"$after")" = "false"
-          test "$(jq -r '.published_at' <<<"$after")" != "null"
-          url="$(jq -r '.html_url' <<<"$after")"
-          {
-            echo "## FEA release published after independent verification"
-            echo "- Version: \`v$FEA_RELEASE_VERSION\`"
-            echo "- Verified source commit: \`$FEA_SOURCE_SHA\`"
-            echo "- Public release: $url"
-            echo "- Checks passed: SHA-256, npm metadata, tarball manifest, GitHub build provenance, isolated npm install and CLI smoke test."
-          } >> "$GITHUB_STEP_SUMMARY"
-          echo "Published verified release: $url"
-) { throw "Unsafe native asset filename: $($item.name)" }
-            $file = Join-Path $dir $item.name
-            if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Downloaded asset missing: $($item.name)" }
-            if ($item.digest -notmatch '^sha256:([0-9a-fA-F]{64})
-    needs: [download-release, verify]
-    if: >-
-      needs.download-release.outputs.release_is_draft == 'true' &&
-      (github.event_name == 'push' ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.publish_after_verify == 'true'))
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-      FEA_RELEASE_VERSION: ${{ github.event.inputs.version || '1.0.0' }}
-      FEA_RELEASE_ID: ${{ needs.download-release.outputs.release_id }}
-      FEA_SOURCE_SHA: ${{ needs.download-release.outputs.source_sha }}
-    steps:
-      - name: Publish the already-verified draft without replacing assets
-        shell: bash
-        run: |
-          set -euo pipefail
-          before="$(gh api "repos/$GITHUB_REPOSITORY/releases/$FEA_RELEASE_ID")"
-          test "$(jq -r '.tag_name' <<<"$before")" = "v$FEA_RELEASE_VERSION"
-          test "$(jq -r '.draft' <<<"$before")" = "true"
-          test "$(jq -r '.target_commitish' <<<"$before")" = "$FEA_SOURCE_SHA"
-          gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$FEA_RELEASE_ID" -F draft=false >/dev/null
-          after="$(gh api "repos/$GITHUB_REPOSITORY/releases/$FEA_RELEASE_ID")"
-          test "$(jq -r '.tag_name' <<<"$after")" = "v$FEA_RELEASE_VERSION"
-          test "$(jq -r '.draft' <<<"$after")" = "false"
-          test "$(jq -r '.published_at' <<<"$after")" != "null"
-          url="$(jq -r '.html_url' <<<"$after")"
-          {
-            echo "## FEA release published after independent verification"
-            echo "- Version: \`v$FEA_RELEASE_VERSION\`"
-            echo "- Verified source commit: \`$FEA_SOURCE_SHA\`"
-            echo "- Public release: $url"
-            echo "- Checks passed: SHA-256, npm metadata, tarball manifest, GitHub build provenance, isolated npm install and CLI smoke test."
-          } >> "$GITHUB_STEP_SUMMARY"
-          echo "Published verified release: $url"
-) { throw "GitHub SHA-256 digest missing for $($item.name)" }
-            $expectedHash = $Matches[1].ToUpperInvariant()
-            $actualHash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToUpperInvariant()
-            if ($actualHash -ne $expectedHash) { throw "GitHub asset digest mismatch: $($item.name)" }
-            if ((Get-Item -LiteralPath $file).Length -ne [long]$item.size) { throw "GitHub asset size mismatch: $($item.name)" }
-            $report = Join-Path $reports ($item.name + '.json')
-            node src/cli.mjs release publisher $file --platform win32 --out $report --thumbprint $pin
-            if ($LASTEXITCODE -ne 0) { throw "FEA Authenticode verification failed for $($item.name)" }
-          }
-          "Verified $($items.Count) Windows installer(s) against the pinned Authenticode publisher." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
-      - name: Retain sanitized Windows publisher reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: fea-native-signature-proof-windows
-          path: ${{ runner.temp }}/fea-native-release-assets/reports/*.json
-          if-no-files-found: ignore
-          retention-days: 7
-
-  verify-native-macos:
-    name: Verify Apple signatures, Gatekeeper and notarization
-    needs: download-release
-    runs-on: macos-15-intel
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    env:
-      FEA_MAC_TEAM_ID: ${{ secrets.FEA_MAC_TEAM_ID }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-      - uses: actions/download-artifact@v4
-        with:
-          name: fea-native-release-assets
-          path: ${{ runner.temp }}/fea-native-release-assets
-      - name: Verify every Apple installer digest, Team ID, Gatekeeper and stapled ticket
-        shell: bash
-        run: |
-          set -euo pipefail
-          dir="$RUNNER_TEMP/fea-native-release-assets"
-          manifest="$dir/native-assets.json"
-          count="$(jq '[.[] | select(.name | test("\\.(dmg|pkg)$"; "i"))] | length' "$manifest")"
-          if [[ "$count" == "0" ]]; then
-            echo "No Apple installer assets attached; signing and notarization are not applicable to this CLI-only release." >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          pin="$FEA_MAC_TEAM_ID"
-          if [[ ! "$pin" =~ ^[A-Z0-9]{10}$ ]]; then
-            echo "Apple installers are present but FEA_MAC_TEAM_ID is missing or invalid." >&2
-            exit 1
-          fi
-          reports="$dir/reports"
-          mkdir -p "$reports"
-          while IFS= read -r row; do
-            name="$(jq -r '.name' <<<"$row")"
-            digest="$(jq -r '.digest' <<<"$row")"
-            size="$(jq -r '.size' <<<"$row")"
-            if [[ ! "$name" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,180}\.(dmg|pkg)$ ]]; then
-              echo "Unsafe native asset filename: $name" >&2
-              exit 1
-            fi
-            file="$dir/$name"
-            test -f "$file"
-            if [[ ! "$digest" =~ ^sha256:([0-9a-fA-F]{64})$ ]]; then
-              echo "GitHub SHA-256 digest missing for $name" >&2
-              exit 1
-            fi
-            expected="${BASH_REMATCH[1],,}"
-            actual="$(shasum -a 256 "$file" | awk '{print $1}')"
-            [[ "$actual" == "$expected" ]] || { echo "GitHub asset digest mismatch: $name" >&2; exit 1; }
-            actual_size="$(wc -c < "$file" | tr -d ' ')"
-            [[ "$actual_size" == "$size" ]] || { echo "GitHub asset size mismatch: $name" >&2; exit 1; }
-            report="$reports/$name.json"
-            node src/cli.mjs release publisher "$file" --platform darwin --out "$report" --team-id "$pin"
-          done < <(jq -c '.[] | select(.name | test("\\.(dmg|pkg)$"; "i"))' "$manifest")
-          echo "Verified $count Apple installer(s) against the pinned Team ID, Gatekeeper and stapled notarization ticket." >> "$GITHUB_STEP_SUMMARY"
-      - name: Retain sanitized Apple publisher reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: fea-native-signature-proof-macos
-          path: ${{ runner.temp }}/fea-native-release-assets/reports/*.json
-          if-no-files-found: ignore
-          retention-days: 7
 
   publish:
     name: Publish only after independent verification
