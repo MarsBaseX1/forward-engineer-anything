@@ -167,6 +167,10 @@ jobs:
       FEA_RELEASE_VERSION: ${{ github.event.inputs.version || '1.0.0' }}
       FEA_SOURCE_SHA: ${{ needs.download-release.outputs.source_sha }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
@@ -199,7 +203,11 @@ jobs:
         run: |
           set -euo pipefail
           expected_tarball="marsbasex-fea-$FEA_RELEASE_VERSION.tgz"
-          expected="$(printf '%s\n' "$expected_tarball" 'npm-pack.json' 'SHA256SUMS.txt' | LC_ALL=C sort)"
+          if [[ -f "$FEA_ASSET_DIR/package-content-audit.json" ]]; then
+            expected="$(printf '%s\n' "$expected_tarball" 'npm-pack.json' 'package-content-audit.json' 'SHA256SUMS.txt' | LC_ALL=C sort)"
+          else
+            expected="$(printf '%s\n' "$expected_tarball" 'npm-pack.json' 'SHA256SUMS.txt' | LC_ALL=C sort)"
+          fi
           actual="$(find "$FEA_ASSET_DIR" -maxdepth 1 -type f -printf '%f\n' | LC_ALL=C sort)"
           if [[ "$actual" != "$expected" ]]; then
             echo "Unexpected release asset set." >&2
@@ -246,13 +254,28 @@ jobs:
           for (const file of actualFiles) assert(manifestFiles.has(file), 'Unlisted file in tarball: ' + file);
           console.log('Verified @marsbasex/fea@' + version + ': ' + bytes.length + ' bytes, ' + actualFiles.size + ' files, SHA-1 and SHA-512 match npm metadata.');
           NODE
+      - name: Deep-inspect the downloaded npm tarball without extracting or executing it
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/package-content-audit.mjs \
+            "$FEA_ASSET_DIR/marsbasex-fea-$FEA_RELEASE_VERSION.tgz" \
+            --manifest "$FEA_ASSET_DIR/npm-pack.json" \
+            --out "$RUNNER_TEMP/package-content-audit.json"
+          if [[ -f "$FEA_ASSET_DIR/package-content-audit.json" ]]; then
+            cmp "$RUNNER_TEMP/package-content-audit.json" "$FEA_ASSET_DIR/package-content-audit.json"
+          fi
       - name: Verify all three signed build-provenance attestations
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          for asset in "marsbasex-fea-$FEA_RELEASE_VERSION.tgz" "npm-pack.json" "SHA256SUMS.txt"; do
+          assets=("marsbasex-fea-$FEA_RELEASE_VERSION.tgz" "npm-pack.json" "SHA256SUMS.txt")
+          if [[ -f "$FEA_ASSET_DIR/package-content-audit.json" ]]; then
+            assets+=("package-content-audit.json")
+          fi
+          for asset in "\${assets[@]}"; do
             echo "Verifying provenance for $asset"
             gh attestation verify "$FEA_ASSET_DIR/$asset" \
               --repo "$GITHUB_REPOSITORY" \
