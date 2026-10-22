@@ -1,4 +1,4 @@
-# FEA v0.4.2 — native Electron Forge package evidence (experimental)
+# FEA — native Electron Forge package evidence (v1.0.0 stable)
 
 This test is intentionally restricted to the **owned, minimal** `demo/real-electron-app` fixture. Unlike the earlier synthetic EXE header and VM startup contract, its [native CI](../.github/workflows/fea-native-package.yml) installs actual Electron 33.4.11, Forge 7.4.0, plugin-fuses 7.4.0 and @electron/fuses 1.8.0, then invokes `electron-forge package --arch=x64` on **Windows** and **macOS Intel**. It does not build or run arbitrary third-party code.
 
