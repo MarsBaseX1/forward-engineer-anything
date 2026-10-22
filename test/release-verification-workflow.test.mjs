@@ -28,6 +28,8 @@ test('independent release verification downloads and validates assets before pub
   assert.ok(workflow.includes('FEA_WINDOWS_SIGNER_THUMBPRINT'));
   assert.ok(workflow.includes('FEA_MAC_TEAM_ID'));
   assert.ok(workflow.includes('stapled ticket'));
+  assert.ok(workflow.includes('recognizeInstaller'), 'Native assets must pass basic container-format recognition before publisher checks');
+  assert.ok(workflow.includes("github.ref == 'refs/heads/main'"), 'Publishing is restricted to the main branch');
   assert.ok(workflow.includes('SHA-1 and SHA-512 match npm metadata'));
   assert.ok(workflow.includes('actions/upload-artifact@v4'));
   assert.ok(workflow.includes('actions/download-artifact@v4'));
