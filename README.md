@@ -9,13 +9,13 @@
   [![CI](https://github.com/MarsBaseX1/forward-engineer-anything/actions/workflows/fea-security.yml/badge.svg)](https://github.com/MarsBaseX1/forward-engineer-anything/actions/workflows/fea-security.yml)
   [![License](https://img.shields.io/badge/license-Apache--2.0-2dbfa4)](LICENSE)
   ![Node](https://img.shields.io/badge/Node.js-%E2%89%A5%2020-294754)
-  ![Version](https://img.shields.io/badge/version-v1.0.0-2d8f86)
+  ![Version](https://img.shields.io/badge/version-v1.0.1-2d8f86)
   [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ea4aaa)](https://github.com/sponsors/MarsBaseX1)
 
   **[English](README.en.md) · [5 分钟上手](#快速开始) · [真实演示数据](#可复现的关键数据) · [安全边界](#我们不承诺什么) · [参与贡献](CONTRIBUTING.md)**
 </div>
 
-> **v1.0.0 正式发布：** FEA 已完成从发布卫生检查到抗 REA 加固框架的演进。规则 FEA001–FEA009、Forge 自动化、建议生成器与 Arena 评测协议现已稳定。详见 [CHANGELOG.md](CHANGELOG.md)。边界声明保持不变：不承诺无法逆向。
+> **v1.0.1 发布更新：** 在稳定的 FEA001–FEA009、Forge 自动化、建议生成器与 Arena 评测能力之外，新增 npm 发布包审计、SPDX 2.3 SBOM、资产哈希绑定和独立发布验证。详见 [CHANGELOG.md](CHANGELOG.md)。边界声明保持不变：不承诺无法逆向。
 
 > **FEA（Forward Engineer Anything）** 是面向桌面软件开发者的开源**保护工程框架**。它帮助团队在交付 Windows / macOS 应用前，发现不必要的敏感资源暴露、建立可重复的 CI 门禁、规划加固并验证效果。**目标是提高 REA 类 AI 辅助逆向与篡改的成本，不是承诺软件无法逆向。**
 
@@ -110,7 +110,7 @@ Windows 系统还可运行 `node src/cli.mjs signature ./my-app.exe --out ./audi
 - 扫描通过不等于没有秘密、没有漏洞、授权无法被绕过。客户端判断不能替代服务端授权。
 - 签名检查不等于加密代码；本工具也不会生成合法的 Windows/macOS 签名。
 - 当前不支持任意 EXE / MSI / DMG 分析、自动加壳或真实 AI 逆向能力评分。
-- **v1.0.0 为稳定发布**，仍不代表独立审计或安全认证；真实发布前请核验支持格式和异常边界。
+- **v1.0.1 发布完整性增强**，仍不代表独立安全审计或安全认证；发布包审计与来源证明不能替代 Windows 代码签名或 macOS 公证。
 
 ## 下一步与贡献
 

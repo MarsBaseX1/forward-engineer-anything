@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.1 — 2026-10-22
+
+### Release integrity and supply-chain audit
+
+- Add package-level archive safety checks for path traversal, duplicate entries, links, unexpected files, install-time lifecycle scripts, and common credential patterns.
+- Generate an SPDX 2.3 SBOM with SHA-256 hashes for files included in the npm tarball.
+- Bind the machine-readable package audit report and SBOM to the exact tarball SHA-256 digest.
+- Extend GitHub release assets with the SBOM and audit report; checksum and attest all five assets.
+- Independently verify the SBOM and audit digest against the downloaded tarball before the release can be promoted.
+- Document Windows Authenticode, macOS Developer ID/notarization, and registry publication as separate release gates.
+
+**Boundaries:** These checks improve release traceability but are not a malware verdict, a complete vulnerability audit, a security certification, Windows Authenticode signing, or macOS notarization.
+
+
 ## 1.0.0 — 2026-10-21
 
 ### First stable release
