@@ -1,4 +1,4 @@
-# FEA v0.4.4 — Unified release audit (experimental)
+# FEA — Unified release audit (v1.0.0 stable)
 
 One read-only command combines bounded format recognition, SHA-256 release-manifest pinning, optional native publisher verification, and imported scan/native build evidence. Each check returns **pass / fail / unassessed**, and the gate exits nonzero if any requirement fails or is unassessed.
 
