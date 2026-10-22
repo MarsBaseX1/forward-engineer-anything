@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import zlib from 'node:zlib';
+import {fileURLToPath} from 'node:url';
 
 const MAX_ARCHIVE_BYTES = 50 * 1024 * 1024;
 const MAX_EXPANDED_BYTES = 256 * 1024 * 1024;
@@ -257,4 +258,4 @@ function main() {
     process.exitCode = 1;
   }
 }
-if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname)) main();
+if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))) main();
