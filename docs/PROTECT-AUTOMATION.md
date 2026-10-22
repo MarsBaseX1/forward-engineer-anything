@@ -1,10 +1,10 @@
-# FEA v0.4 — bounded Electron Forge JSON config patch (experimental)
+# FEA Protect — bounded Electron Forge JSON config automation (v1.0.0 stable)
 
 This is a reviewed config-edit workflow, **not a code protector**. ASAR packages JavaScript and resources together; it is not encryption, obfuscation, exploit mitigation or a bypass-proof license barrier. Enabling the recommended Electron Fuses raises the cost of loading unpacked or tampered resources, but does not make client code confidential.
 
 ## Explicit support matrix
 
-- Node.js 20+ on Windows/macOS/Linux. Tested in CI on Windows and Ubuntu; no Mac runner yet.
+- Node.js 20+ on Windows/macOS/Linux.
 - Forge CLI version `7.4.x` or higher **in major 7**, as a pinned `7.x.y`, `^7.x.y`, or `~7.x.y` dependency (version string validation, **not** a proven all-minor runtime support matrix).
 - Exactly one JSON configuration source: `forge.config.json` **or** `package.json#config.forge`.
 - A `packagerConfig` object with `asar:false` or no `asar` property. Preexisting `asar:true` or object is treated as already configured.
@@ -31,4 +31,4 @@ To roll back, pass the receipt emitted by apply. Rollback refuses to overwrite a
 3. If signing is used, sign **after** rebuilding, then check the final signed files. A config-file edit does not produce a signature.
 4. Rescan the **actual** resulting resources and compare findings; do not infer real security improvement from the configuration toggle alone.
 
-This first implementation assumes a trusted, quiescent local worktree; it does not safely patch adversarially concurrently modified directories or support all cross-platform filesystem edge cases. No independent audit has been conducted. Fuses require compatible Electron versions; test thoroughly.
+This implementation assumes a trusted, quiescent local worktree; it does not safely patch adversarially concurrently modified directories or support all cross-platform filesystem edge cases. No independent audit has been conducted. Fuses require compatible Electron versions; test thoroughly.
