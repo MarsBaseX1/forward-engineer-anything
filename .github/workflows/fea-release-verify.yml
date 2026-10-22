@@ -313,11 +313,11 @@ jobs:
     permissions:
       contents: read
     env:
-      FEA_WINDOWS_SIGNER_THUMBPRINT: \${{ secrets.FEA_WINDOWS_SIGNER_THUMBPRINT }}
+      FEA_WINDOWS_SIGNER_THUMBPRINT: ${{ secrets.FEA_WINDOWS_SIGNER_THUMBPRINT }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: \${{ github.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
@@ -325,7 +325,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: fea-native-release-assets
-          path: \${{ runner.temp }}/fea-native-release-assets
+          path: ${{ runner.temp }}/fea-native-release-assets
       - name: Verify every Windows installer digest, Authenticode status and pinned publisher
         shell: pwsh
         run: |
@@ -513,7 +513,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: fea-native-signature-proof-windows
-          path: \${{ runner.temp }}/fea-native-release-assets/reports/*.json
+          path: ${{ runner.temp }}/fea-native-release-assets/reports/*.json
           if-no-files-found: ignore
           retention-days: 7
 
@@ -525,11 +525,11 @@ jobs:
     permissions:
       contents: read
     env:
-      FEA_MAC_TEAM_ID: \${{ secrets.FEA_MAC_TEAM_ID }}
+      FEA_MAC_TEAM_ID: ${{ secrets.FEA_MAC_TEAM_ID }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: \${{ github.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
@@ -537,7 +537,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: fea-native-release-assets
-          path: \${{ runner.temp }}/fea-native-release-assets
+          path: ${{ runner.temp }}/fea-native-release-assets
       - name: Verify every Apple installer digest, Team ID, Gatekeeper and stapled ticket
         shell: bash
         run: |
@@ -570,7 +570,7 @@ jobs:
               echo "GitHub SHA-256 digest missing for $name" >&2
               exit 1
             fi
-            expected="\${BASH_REMATCH[1],,}"
+            expected="${BASH_REMATCH[1],,}"
             actual="$(shasum -a 256 "$file" | awk '{print $1}')"
             [[ "$actual" == "$expected" ]] || { echo "GitHub asset digest mismatch: $name" >&2; exit 1; }
             actual_size="$(wc -c < "$file" | tr -d ' ')"
@@ -584,7 +584,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: fea-native-signature-proof-macos
-          path: \${{ runner.temp }}/fea-native-release-assets/reports/*.json
+          path: ${{ runner.temp }}/fea-native-release-assets/reports/*.json
           if-no-files-found: ignore
           retention-days: 7
 
