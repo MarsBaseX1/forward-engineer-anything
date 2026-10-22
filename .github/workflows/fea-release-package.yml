@@ -89,13 +89,16 @@ jobs:
           retention-days: 7
 
   create-draft-release:
-    name: Create draft release with checksums
+    name: Create draft release with checksums and provenance
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     needs: [verify, native-package]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -122,12 +125,38 @@ jobs:
             echo "The tag already exists; refusing to attach assets to an unverified tag." >&2
             exit 1
           fi
-      - name: Build npm tarball and manifest
+      - name: Build npm tarball and validate package metadata
+        env:
+          FEA_RELEASE_VERSION: ${{ inputs.version }}
         run: |
           mkdir -p dist
           npm pack --ignore-scripts --json --pack-destination dist > dist/npm-pack.json
-          node -e "const fs=require('fs'); const x=JSON.parse(fs.readFileSync('dist/npm-pack.json','utf8')); if(x.length!==1 || !x[0].filename.endsWith('.tgz')) process.exit(1)"
+          node --input-type=commonjs <<'NODE'
+          const fs = require('node:fs');
+          const pkg = require('./package.json');
+          const result = JSON.parse(fs.readFileSync('dist/npm-pack.json', 'utf8'));
+          if (
+            result.length !== 1 ||
+            result[0].name !== pkg.name ||
+            result[0].version !== process.env.FEA_RELEASE_VERSION ||
+            pkg.version !== process.env.FEA_RELEASE_VERSION ||
+            !result[0].filename.endsWith('.tgz') ||
+            !Number.isSafeInteger(result[0].size) ||
+            result[0].size <= 0
+          ) {
+            console.error('Unexpected npm package metadata; refusing to release.');
+            process.exit(1);
+          }
+          console.log(`Validated ${result[0].name}@${result[0].version} (${result[0].size} bytes)`);
+          NODE
           (cd dist && sha256sum *.tgz npm-pack.json > SHA256SUMS.txt)
+      - name: Attest release assets with GitHub build provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            dist/*.tgz
+            dist/npm-pack.json
+            dist/SHA256SUMS.txt
       - name: Create draft GitHub Release (not published)
         env:
           FEA_RELEASE_VERSION: ${{ inputs.version }}
