@@ -1,11 +1,21 @@
 # Contributing to FEA
 
-FEA is currently a design-stage project. There is no released CLI or protection runtime. Contributions should keep planned capabilities clearly separate from implemented and verified behavior.
+FEA is a stable open-source protection engineering framework for Electron desktop applications (v1.0.0). Contributions are welcome for rules, synthetic fixtures, adapters, documentation, and tests.
 
-Useful first contributions include reviewing the threat model, refining the v0.1 resource rules, proposing synthetic positive and negative fixtures, and documenting supported Windows / macOS build layouts. Read the [architecture design](docs/superpowers/specs/2026-10-21-fea-design.md) and [roadmap](docs/ROADMAP.md) before proposing a new subsystem.
+Please read [ROADMAP.md](docs/ROADMAP.md), [ANTI-REA-HARDENING.md](docs/ANTI-REA-HARDENING.md), and [THREAT_MODEL.md](docs/THREAT_MODEL.md) before proposing larger changes.
 
-Open an issue to explain the user problem, target format, expected evidence, limitations, and acceptance criteria. Pull requests should describe what changed and how it was checked. Documentation-only changes need link and consistency checks; executable changes need tests relevant to their behavior.
+## How to contribute
 
-Use only software and fixtures you own or are authorized to examine. Do not include real credentials, signing keys, customer data, proprietary third-party binaries, or private analysis reports in issues, pull requests, or test fixtures. Use synthetic values and minimized examples.
+1. Open an issue describing the user problem, target format, expected evidence, limitations, and acceptance criteria.
+2. Pull requests should describe what changed and how it was verified.
+3. Documentation-only changes need link and consistency checks.
+4. Executable changes need relevant tests.
 
-The repository uses [Apache-2.0](LICENSE). Preserve third-party notices and disclose relevant dependencies. Do not describe a technique as unbreakable or claim general protection based on a single failed analysis attempt.
+## Rules
+
+- Use only software and fixtures you own or are authorized to examine.
+- Do not include real credentials, signing keys, customer data, proprietary third-party binaries, or private analysis reports.
+- Use synthetic values and minimized examples.
+- Do not describe a technique as unbreakable or claim general protection based on a single failed analysis attempt.
+
+The repository uses [Apache-2.0](LICENSE). Preserve third-party notices and disclose relevant dependencies.
