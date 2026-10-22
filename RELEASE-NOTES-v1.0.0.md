@@ -16,6 +16,7 @@ This is the counterpart to post-release analysis tools such as REA: FEA works at
 - SARIF 2.1.0 export for GitHub Code Scanning.
 - Release readiness, publisher trust status checks, and unified release audit for bounded installer recognition.
 - Production-readiness CLI distribution smoke tests.
+- Release SHA-256 checksums and GitHub build-provenance attestations for the npm package and release metadata.
 
 ## Honest boundaries
 
@@ -24,8 +25,9 @@ This is the counterpart to post-release analysis tools such as REA: FEA works at
 - Does not automatically rewrite application code or execute untrusted project configurations.
 - Arena results and suggestions do not prove reverse-engineering resistance.
 - Installer content parsing and real commercial certificate positive verification remain limited.
+- Build provenance helps verify where a specific release asset came from; it is not a malware scan, code-signing certificate, or security certification.
 
-See [ANTI-REA-HARDENING.md](docs/ANTI-REA-HARDENING.md) and [CHANGELOG.md](CHANGELOG.md) for full details.
+See [ANTI-REA-HARDENING.md](docs/ANTI-REA-HARDENING.md), [release asset verification](docs/RELEASE-VERIFICATION.md), and [CHANGELOG.md](CHANGELOG.md) for full details.
 
 ## Get started
 
