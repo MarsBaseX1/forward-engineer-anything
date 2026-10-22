@@ -84,7 +84,7 @@ jobs:
               echo "Unexpected or unsafe release asset name: $name" >&2
               exit 1
             fi
-            lower="\${name,,}"
+            lower="${name,,}"
             case "$lower" in
               *.exe|*.msi|*.dmg|*.pkg) ;;
               *) echo "Unsupported release asset type: $name" >&2; exit 1 ;;
