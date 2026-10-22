@@ -13,6 +13,16 @@ npm run distribution:smoke
 
 The offline smoke test runs `npm pack`, installs the tarball into a temporary directory without network access, and executes basic CLI commands. It does **not** publish to npm or validate publisher signatures.
 
+## Release criteria
+
+All criteria below must be explicitly satisfied before relying on FEA for a production release decision:
+
+1. **Cross-platform CI:** Windows/macOS/Linux unit and offline install smoke tests must pass.
+2. **Documented scope:** Each stable CLI command must have help, safe invalid-input behavior and exit codes 0 success / 1 invalid input / 2 failed policy or Unassessed.
+3. **Publisher verification:** Positive validation with a legitimate, independently pinned Windows signer and Apple Developer ID / notarized macOS sample must pass on native hosts. Negative cases must fail or report Unassessed.
+4. **Actual installer content:** Unsupported formats are **Unassessed**.
+5. **Evidence integrity:** Release-resource scans must come from the protected build job and be bound to a verified, immutable artifact digest.
+
 ## Current validation status (v1.0.0)
 
 | Item | Status |
