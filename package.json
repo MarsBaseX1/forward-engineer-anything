@@ -22,7 +22,8 @@
     "trust:demo": "node demo/release-trust.mjs",
     "release:audit": "node scripts/release-audit.mjs",
     "release:audit-demo": "node demo/release-audit.mjs",
-    "distribution:smoke": "node scripts/distribution-smoke.mjs"
+    "distribution:smoke": "node scripts/distribution-smoke.mjs",
+    "release:package-audit": "node scripts/package-security-audit.mjs"
   },
   "engines": {
     "node": ">=20"

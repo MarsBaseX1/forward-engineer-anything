@@ -8,6 +8,7 @@ on:
       - 'src/**'
       - 'test/**'
       - 'scripts/distribution-smoke.mjs'
+      - 'scripts/package-security-audit.mjs'
       - 'docs/**'
       - 'README.md'
       - 'README.en.md'
@@ -149,7 +150,14 @@ jobs:
           }
           console.log(`Validated ${result[0].name}@${result[0].version} (${result[0].size} bytes)`);
           NODE
-          (cd dist && sha256sum *.tgz npm-pack.json > SHA256SUMS.txt)
+      - name: Audit exact release tarball and generate SPDX SBOM
+        env:
+          FEA_RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          tarball="dist/marsbasex-fea-${FEA_RELEASE_VERSION}.tgz"
+          node scripts/package-security-audit.mjs --tarball "$tarball" --out-dir dist --version "$FEA_RELEASE_VERSION"
+          (cd dist && sha256sum *.tgz npm-pack.json sbom.spdx.json package-security-audit.json > SHA256SUMS.txt)
       - name: Attest release assets with GitHub build provenance
         uses: actions/attest@v4
         with:
@@ -157,12 +165,14 @@ jobs:
             dist/*.tgz
             dist/npm-pack.json
             dist/SHA256SUMS.txt
+            dist/sbom.spdx.json
+            dist/package-security-audit.json
       - name: Create draft GitHub Release (not published)
         env:
           FEA_RELEASE_VERSION: ${{ inputs.version }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "v${FEA_RELEASE_VERSION}" dist/*.tgz dist/npm-pack.json dist/SHA256SUMS.txt \
+          gh release create "v${FEA_RELEASE_VERSION}" dist/*.tgz dist/npm-pack.json dist/sbom.spdx.json dist/package-security-audit.json dist/SHA256SUMS.txt \
             --draft \
             --target "$GITHUB_SHA" \
             --title "FEA v${FEA_RELEASE_VERSION}" \

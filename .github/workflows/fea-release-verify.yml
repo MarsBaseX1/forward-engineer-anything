@@ -68,13 +68,20 @@ jobs:
             echo "Release metadata does not identify the expected version and a full source commit." >&2
             exit 1
           fi
-          if [[ "$(jq '.assets | length' <<<"$release")" != "3" ]]; then
-            echo "Expected exactly three release assets." >&2
+          asset_count="$(jq '.assets | length' <<<"$release")"
+          if [[ "$asset_count" != "3" && "$asset_count" != "5" ]]; then
+            echo "Expected a legacy three-asset release or five-asset SBOM-enabled release." >&2
             exit 1
           fi
           tarball_asset_id="$(jq -r --arg name "marsbasex-fea-$FEA_RELEASE_VERSION.tgz" '.assets[] | select(.name == $name) | .id' <<<"$release")"
           npm_pack_asset_id="$(jq -r '.assets[] | select(.name == "npm-pack.json") | .id' <<<"$release")"
           checksums_asset_id="$(jq -r '.assets[] | select(.name == "SHA256SUMS.txt") | .id' <<<"$release")"
+          sbom_asset_id="$(jq -r '.assets[] | select(.name == "sbom.spdx.json") | .id' <<<"$release")"
+          audit_asset_id="$(jq -r '.assets[] | select(.name == "package-security-audit.json") | .id' <<<"$release")"
+          if [[ "$asset_count" == "5" && ( ! "$sbom_asset_id" =~ ^[0-9]+$ || ! "$audit_asset_id" =~ ^[0-9]+$ ) ]]; then
+            echo "SBOM-enabled release is missing a required SBOM or package audit asset." >&2
+            exit 1
+          fi
           for id in "$tarball_asset_id" "$npm_pack_asset_id" "$checksums_asset_id"; do
             if [[ ! "$id" =~ ^[0-9]+$ ]]; then
               echo "A required release asset ID is missing or ambiguous." >&2
@@ -87,6 +94,8 @@ jobs:
           echo "tarball_asset_id=$tarball_asset_id" >> "$GITHUB_OUTPUT"
           echo "npm_pack_asset_id=$npm_pack_asset_id" >> "$GITHUB_OUTPUT"
           echo "checksums_asset_id=$checksums_asset_id" >> "$GITHUB_OUTPUT"
+          echo "sbom_asset_id=$sbom_asset_id" >> "$GITHUB_OUTPUT"
+          echo "audit_asset_id=$audit_asset_id" >> "$GITHUB_OUTPUT"
           {
             echo "### Release under verification"
             echo "- Tag: \`$tag\`"
@@ -110,6 +119,12 @@ jobs:
             gh api -H "Accept: application/octet-stream" \
               "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" > "$dir/$asset_name"
           done
+          if [[ "${{ steps.release.outputs.sbom_asset_id }}" =~ ^[0-9]+$ ]]; then
+            gh api -H "Accept: application/octet-stream" \
+              "repos/$GITHUB_REPOSITORY/releases/assets/${{ steps.release.outputs.sbom_asset_id }}" > "$dir/sbom.spdx.json"
+            gh api -H "Accept: application/octet-stream" \
+              "repos/$GITHUB_REPOSITORY/releases/assets/${{ steps.release.outputs.audit_asset_id }}" > "$dir/package-security-audit.json"
+          fi
       - name: Pass downloaded files to a separate read-only verification job
         uses: actions/upload-artifact@v4
         with:
@@ -163,6 +178,12 @@ jobs:
           set -euo pipefail
           expected_tarball="marsbasex-fea-$FEA_RELEASE_VERSION.tgz"
           expected="$(printf '%s\n' "$expected_tarball" 'npm-pack.json' 'SHA256SUMS.txt' | LC_ALL=C sort)"
+          if [[ -f "$FEA_ASSET_DIR/sbom.spdx.json" && -f "$FEA_ASSET_DIR/package-security-audit.json" ]]; then
+            expected="$(printf '%s\n' "$expected" 'sbom.spdx.json' 'package-security-audit.json' | LC_ALL=C sort)"
+          elif [[ -e "$FEA_ASSET_DIR/sbom.spdx.json" || -e "$FEA_ASSET_DIR/package-security-audit.json" ]]; then
+            echo "Incomplete SBOM/audit asset pair." >&2
+            exit 1
+          fi
           actual="$(find "$FEA_ASSET_DIR" -maxdepth 1 -type f -printf '%f\n' | LC_ALL=C sort)"
           if [[ "$actual" != "$expected" ]]; then
             echo "Unexpected release asset set." >&2
@@ -170,6 +191,28 @@ jobs:
             exit 1
           fi
           (cd "$FEA_ASSET_DIR" && sha256sum -c SHA256SUMS.txt)
+          if [[ -f "$FEA_ASSET_DIR/sbom.spdx.json" ]]; then
+            FEA_ASSET_DIR="$FEA_ASSET_DIR" FEA_RELEASE_VERSION="$FEA_RELEASE_VERSION" node --input-type=commonjs <<'NODE'
+          const assert = require('node:assert/strict');
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const dir = process.env.FEA_ASSET_DIR;
+          const version = process.env.FEA_RELEASE_VERSION;
+          const tarball = fs.readFileSync(path.join(dir, 'marsbasex-fea-' + version + '.tgz'));
+          const sha256 = crypto.createHash('sha256').update(tarball).digest('hex');
+          const sbom = JSON.parse(fs.readFileSync(path.join(dir, 'sbom.spdx.json'), 'utf8'));
+          const audit = JSON.parse(fs.readFileSync(path.join(dir, 'package-security-audit.json'), 'utf8'));
+          assert.equal(sbom.spdxVersion, 'SPDX-2.3');
+          assert.equal(sbom.packages[0].name, '@marsbasex/fea');
+          assert.equal(sbom.packages[0].versionInfo, version);
+          assert.equal(sbom.packages[0].checksums[0].checksumValue, sha256, 'SBOM does not describe the downloaded tarball');
+          assert.equal(audit.result, 'PASS', 'Package audit did not pass');
+          assert.equal(audit.package.sha256, sha256, 'Audit report does not match downloaded tarball');
+          assert.ok(audit.checks.length >= 10 && audit.checks.every(item => item.result === 'pass'));
+          console.log('SPDX SBOM and package audit are bound to the verified tarball SHA-256.');
+          NODE
+          fi
           FEA_ASSET_DIR="$FEA_ASSET_DIR" FEA_RELEASE_VERSION="$FEA_RELEASE_VERSION" node --input-type=commonjs <<'NODE'
           const assert = require('node:assert/strict');
           const crypto = require('node:crypto');
@@ -215,7 +258,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for asset in "marsbasex-fea-$FEA_RELEASE_VERSION.tgz" "npm-pack.json" "SHA256SUMS.txt"; do
+          assets=("marsbasex-fea-$FEA_RELEASE_VERSION.tgz" "npm-pack.json" "SHA256SUMS.txt")
+          if [[ -f "$FEA_ASSET_DIR/sbom.spdx.json" ]]; then
+            assets+=("sbom.spdx.json" "package-security-audit.json")
+          fi
+          for asset in "${assets[@]}"; do
             echo "Verifying provenance for $asset"
             gh attestation verify "$FEA_ASSET_DIR/$asset" \
               --repo "$GITHUB_REPOSITORY" \
