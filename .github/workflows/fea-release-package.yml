@@ -7,7 +7,7 @@ on:
       - 'package.json'
       - 'src/**'
       - 'test/**'
-      - 'scripts/distribution-smoke.mjs'
+      - 'scripts/**'
       - 'docs/**'
       - 'README.md'
       - 'README.en.md'
@@ -149,13 +149,16 @@ jobs:
           }
           console.log(`Validated ${result[0].name}@${result[0].version} (${result[0].size} bytes)`);
           NODE
-          (cd dist && sha256sum *.tgz npm-pack.json > SHA256SUMS.txt)
+          tarball="$(node -e "const p=require('./dist/npm-pack.json'); process.stdout.write(p[0].filename)")"
+          node scripts/package-content-audit.mjs "dist/$tarball" --manifest dist/npm-pack.json --out dist/package-content-audit.json
+          (cd dist && sha256sum *.tgz npm-pack.json package-content-audit.json > SHA256SUMS.txt)
       - name: Attest release assets with GitHub build provenance
         uses: actions/attest@v4
         with:
           subject-path: |
             dist/*.tgz
             dist/npm-pack.json
+            dist/package-content-audit.json
             dist/SHA256SUMS.txt
       - name: Create draft GitHub Release (not published)
         env:
