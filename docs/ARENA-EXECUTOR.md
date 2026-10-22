@@ -1,4 +1,4 @@
-# FEA v0.3.2 Arena executor — experimental
+# FEA Arena executor (v1.0.0 stable)
 
 This runner accepts **only a locally selected, operator-trusted Node.js `.mjs` adapter**. It does **not** download models, inspect third-party software, sandbox code, or independently verify model answers. The operator must own the artifacts or have explicit authorization. Never run adapters from untrusted sources.
 
@@ -13,7 +13,7 @@ cat demo/generated/reports/arena-execution/comparison.md
 
 The sample `demo/trusted-observer.mjs` observes FEA001 and FEA003 static findings in intentionally altered **owned** ASAR fixtures. It never invokes an AI model; its high baseline visibility rates are **not AI reverse-engineering success rates**.
 
-## Anti-REA suite (new rules)
+## Anti-REA suite
 
 A second suite covers the rules added for raising REA-style analysis cost:
 
