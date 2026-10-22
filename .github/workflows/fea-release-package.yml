@@ -149,7 +149,6 @@ jobs:
           }
           console.log(`Validated ${result[0].name}@${result[0].version} (${result[0].size} bytes)`);
           NODE
-          (cd dist && sha256sum *.tgz npm-pack.json sbom.spdx.json package-security-audit.json > SHA256SUMS.txt)
       - name: Audit exact release tarball and generate SPDX SBOM
         env:
           FEA_RELEASE_VERSION: ${{ inputs.version }}
@@ -157,6 +156,7 @@ jobs:
           set -euo pipefail
           tarball="dist/marsbasex-fea-${FEA_RELEASE_VERSION}.tgz"
           node scripts/package-security-audit.mjs --tarball "$tarball" --out-dir dist --version "$FEA_RELEASE_VERSION"
+          (cd dist && sha256sum *.tgz npm-pack.json sbom.spdx.json package-security-audit.json > SHA256SUMS.txt)
       - name: Attest release assets with GitHub build provenance
         uses: actions/attest@v4
         with:
