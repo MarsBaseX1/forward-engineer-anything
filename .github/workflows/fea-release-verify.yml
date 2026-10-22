@@ -393,7 +393,8 @@ jobs:
             name="$(jq -r '.name' <<<"$row")"
             digest="$(jq -r '.digest' <<<"$row")"
             size="$(jq -r '.size' <<<"$row")"
-            if [[ ! "$name" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,180}\.(dmg|pkg)$ ]]; then
+            lower_name="${name,,}"
+            if [[ ! "$lower_name" =~ ^[a-z0-9][a-z0-9._-]{0,180}\.(dmg|pkg)$ ]]; then
               echo "Unsafe native asset filename: $name" >&2
               exit 1
             fi
