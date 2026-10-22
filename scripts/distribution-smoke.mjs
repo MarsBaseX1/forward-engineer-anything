@@ -43,9 +43,9 @@ if (!npmCli || !fs.existsSync(npmCli)) {
     }
     for (const readme of ['README.md','README.en.md']) {
       const markdown = fs.readFileSync(path.join(root, readme), 'utf8');
-      const localMarkdownLinks = [...markdown.matchAll(/\\]\\(([^)]+\\.md)(?:#[^)]*)?\\)/g)]
+      const localMarkdownLinks = [...markdown.matchAll(/\]\(([^)#]+\.md)(?:#[^)]+)?\)/g)]
         .map(match => match[1])
-        .filter(target => !/^https?:\\/\\//i.test(target));
+        .filter(target => !/^https?:\/\//i.test(target));
       for (const link of localMarkdownLinks) {
         const target = path.posix.normalize(path.posix.join(path.posix.dirname(readme), link.split('#')[0]));
         assert(included.has(target), `README link target missing from npm tarball: ${target} (referenced by ${readme})`);
