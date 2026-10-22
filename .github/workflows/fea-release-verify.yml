@@ -27,13 +27,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  verify:
-    name: Verify downloaded release assets
+  download-release:
+    name: Read draft metadata and download assets
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
+    # Draft releases are listed only to identities with push access. This job does not execute the package.
     permissions:
-      contents: read
-      attestations: read
+      contents: write
     outputs:
       release_id: ${{ steps.release.outputs.release_id }}
       release_is_draft: ${{ steps.release.outputs.release_is_draft }}
@@ -41,27 +41,7 @@ jobs:
     env:
       FEA_RELEASE_VERSION: ${{ github.event.inputs.version || '1.0.0' }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-      - name: Install current GitHub CLI and require patched attestation verification
-        shell: bash
-        run: |
-          set -euo pipefail
-          sudo mkdir -p -m 755 /etc/apt/keyrings
-          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg >/dev/null
-          sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null
-          sudo apt-get update
-          sudo apt-get install --yes gh
-          gh version
-          actual="$(gh version | awk 'NR==1 {print $3}')"
-          if [[ "$(printf '%s\n' '2.102.0' "$actual" | sort -V | head -n1)" != "2.102.0" ]]; then
-            echo "GitHub CLI 2.102.0 or newer is required for the patched signer-workflow identity check (found $actual)." >&2
-            exit 1
-          fi
-      - name: Resolve the existing release and pin its source commit
+      - name: Resolve the draft and pin its source commit
         id: release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -72,11 +52,11 @@ jobs:
             echo "Expected a stable semantic version, got: $FEA_RELEASE_VERSION" >&2
             exit 1
           fi
-          # GitHub's get-release-by-tag endpoint omits draft releases. List releases instead.
           all_releases="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100")"
           matches="$(jq --arg tag "v$FEA_RELEASE_VERSION" '[.[] | select(.tag_name == $tag)]' <<<"$all_releases")"
           if [[ "$(jq 'length' <<<"$matches")" != "1" ]]; then
             echo "Expected exactly one release record for v$FEA_RELEASE_VERSION." >&2
+            jq -r '.[] | "visible release: tag=\(.tag_name) name=\(.name) draft=\(.draft)"' <<<"$all_releases" >&2
             exit 1
           fi
           release="$(jq '.[0]' <<<"$matches")"
@@ -109,11 +89,11 @@ jobs:
           echo "checksums_asset_id=$checksums_asset_id" >> "$GITHUB_OUTPUT"
           {
             echo "### Release under verification"
-            echo "- Tag: `$tag`"
-            echo "- Draft: `$is_draft`"
-            echo "- Source commit: `$source_sha`"
+            echo "- Tag: \`$tag\`"
+            echo "- Draft: \`$is_draft\`"
+            echo "- Source commit: \`$source_sha\`"
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Download assets from GitHub Release, not the build workspace
+      - name: Download exact assets using the authenticated GitHub API
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -125,12 +105,58 @@ jobs:
             "${{ steps.release.outputs.tarball_asset_id }}|marsbasex-fea-$FEA_RELEASE_VERSION.tgz" \
             "${{ steps.release.outputs.npm_pack_asset_id }}|npm-pack.json" \
             "${{ steps.release.outputs.checksums_asset_id }}|SHA256SUMS.txt"; do
-            asset_id="${pair%%|*}"
-            asset_name="${pair#*|}"
+            asset_id="\${pair%%|*}"
+            asset_name="\${pair#*|}"
             gh api -H "Accept: application/octet-stream" \
               "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" > "$dir/$asset_name"
           done
-          echo "FEA_ASSET_DIR=$dir" >> "$GITHUB_ENV"
+      - name: Pass downloaded files to a separate read-only verification job
+        uses: actions/upload-artifact@v4
+        with:
+          name: fea-release-assets-to-verify
+          path: ${{ runner.temp }}/fea-release-assets/*
+          if-no-files-found: error
+          retention-days: 1
+
+  verify:
+    name: Verify downloaded release assets in isolation
+    needs: download-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      attestations: read
+    env:
+      FEA_RELEASE_VERSION: ${{ github.event.inputs.version || '1.0.0' }}
+      FEA_SOURCE_SHA: ${{ needs.download-release.outputs.source_sha }}
+    steps:
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Install current GitHub CLI and require patched attestation verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo mkdir -p -m 755 /etc/apt/keyrings
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg >/dev/null
+          sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null
+          sudo apt-get update
+          sudo apt-get install --yes gh
+          gh version
+          actual="$(gh version | awk 'NR==1 {print $3}')"
+          if [[ "$(printf '%s\n' '2.102.0' "$actual" | sort -V | head -n1)" != "2.102.0" ]]; then
+            echo "GitHub CLI 2.102.0 or newer is required for the patched signer-workflow identity check (found $actual)." >&2
+            exit 1
+          fi
+      - name: Retrieve the exact release assets from the isolated download job
+        uses: actions/download-artifact@v4
+        with:
+          name: fea-release-assets-to-verify
+          path: ${{ runner.temp }}/fea-release-assets
+      - name: Set the asset directory
+        shell: bash
+        run: echo "FEA_ASSET_DIR=$RUNNER_TEMP/fea-release-assets" >> "$GITHUB_ENV"
       - name: Verify exact asset set, SHA-256, npm metadata and tarball contents
         shell: bash
         run: |
@@ -186,7 +212,6 @@ jobs:
       - name: Verify all three signed build-provenance attestations
         env:
           GH_TOKEN: ${{ github.token }}
-          FEA_SOURCE_SHA: ${{ steps.release.outputs.source_sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -222,9 +247,9 @@ jobs:
 
   publish:
     name: Publish only after independent verification
-    needs: verify
+    needs: [download-release, verify]
     if: >-
-      needs.verify.outputs.release_is_draft == 'true' &&
+      needs.download-release.outputs.release_is_draft == 'true' &&
       (github.event_name == 'push' ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.publish_after_verify == 'true'))
     runs-on: ubuntu-latest
@@ -234,8 +259,8 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       FEA_RELEASE_VERSION: ${{ github.event.inputs.version || '1.0.0' }}
-      FEA_RELEASE_ID: ${{ needs.verify.outputs.release_id }}
-      FEA_SOURCE_SHA: ${{ needs.verify.outputs.source_sha }}
+      FEA_RELEASE_ID: ${{ needs.download-release.outputs.release_id }}
+      FEA_SOURCE_SHA: ${{ needs.download-release.outputs.source_sha }}
     steps:
       - name: Publish the already-verified draft without replacing assets
         shell: bash
