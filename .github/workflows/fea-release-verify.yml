@@ -5,6 +5,10 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/fea-release-verify.yml'
+      - '.github/workflows/fea-release-package.yml'
+      - 'scripts/package-content-audit.mjs'
+      - 'src/release-trust.mjs'
+      - 'src/release-audit.mjs'
   workflow_dispatch:
     inputs:
       version:
