@@ -331,6 +331,7 @@ jobs:
             $actualHash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToUpperInvariant()
             if ($actualHash -ne $expectedHash) { throw "GitHub asset digest mismatch: $($item.name)" }
             if ((Get-Item -LiteralPath $file).Length -ne [long]$item.size) { throw "GitHub asset size mismatch: $($item.name)" }
+            node --input-type=module -e 'import { recognizeInstaller } from "./src/release-audit.mjs"; const r = recognizeInstaller(process.argv[1]); if (r.status !== "pass") { console.error(r.notice); process.exit(1); }' $file
             $report = Join-Path $reports ($item.name + '.json')
             node src/cli.mjs release publisher $file --platform win32 --out $report --thumbprint $pin
             if ($LASTEXITCODE -ne 0) { throw "FEA Authenticode verification failed for $($item.name)" }
@@ -404,6 +405,7 @@ jobs:
             [[ "$actual" == "$expected" ]] || { echo "GitHub asset digest mismatch: $name" >&2; exit 1; }
             actual_size="$(wc -c < "$file" | tr -d ' ')"
             [[ "$actual_size" == "$size" ]] || { echo "GitHub asset size mismatch: $name" >&2; exit 1; }
+            node --input-type=module -e 'import { recognizeInstaller } from "./src/release-audit.mjs"; const r = recognizeInstaller(process.argv[1]); if (r.status !== "pass") { console.error(r.notice); process.exit(1); }' "$file"
             report="$reports/$name.json"
             node src/cli.mjs release publisher "$file" --platform darwin --out "$report" --team-id "$pin"
           done < <(jq -c '.[] | select(.name | test("\\.(dmg|pkg)$"; "i"))' "$manifest")
