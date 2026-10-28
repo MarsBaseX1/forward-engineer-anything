@@ -7,7 +7,8 @@ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'fea-v04-demo-'));
 try{
   const project=path.join(dir,'owned-electron-fixture');fs.mkdirSync(project);
   const file=path.join(project,'package.json');
-  fs.writeFileSync(file,JSON.stringify({name:'owned-demo',devDependencies:{'@electron-forge/cli':'^7.4.0'},
+  fs.writeFileSync(file,JSON.stringify({name:'owned-demo',devDependencies:{
+      '@electron-forge/cli':'^7.4.0','@electron-forge/plugin-fuses':'^7.4.0'},
     config:{forge:{packagerConfig:{asar:false,icon:'demo-icon'},plugins:[]}}},null,2)+'\n');
   const before=fs.readFileSync(file);const plan=previewHardening(project);
   assert.equal(plan.changeRequired,true);

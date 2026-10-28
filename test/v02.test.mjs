@@ -11,9 +11,13 @@ import {DEFAULT_CONFIG,verifyReport} from '../src/core.mjs';
 function temp(t){const root=fs.mkdtempSync(path.join(os.tmpdir(),'fea-v02-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));return root;}
 function asar(root,tree,content=Buffer.alloc(0)) {
   const json=Buffer.from(typeof tree==='string'?tree:JSON.stringify(tree));
-  const headLen=4+json.length,aligned=(headLen+3)&~3;
-  const size=Buffer.alloc(8);size.writeUInt32LE(4,0);size.writeUInt32LE(aligned,4);
-  const header=Buffer.alloc(aligned);header.writeUInt32LE(json.length,0);json.copy(header,4);
+  // Standard Chromium Pickle: payload length, then a length-prefixed UTF-8 string.
+  const payloadLength=(4+json.length+3)&~3;
+  const header=Buffer.alloc(4+payloadLength);
+  header.writeUInt32LE(payloadLength,0);
+  header.writeUInt32LE(json.length,4);
+  json.copy(header,8);
+  const size=Buffer.alloc(8);size.writeUInt32LE(4,0);size.writeUInt32LE(header.length,4);
   const file=path.join(root,'app.asar');fs.writeFileSync(file,Buffer.concat([size,header,content]));return file;
 }
 test('asar detects actual embedded risks without disclosing filenames or contents',t=>{

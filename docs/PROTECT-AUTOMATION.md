@@ -8,7 +8,7 @@ This is a reviewed config-edit workflow, **not a code protector**. ASAR packages
 - Forge CLI version `7.4.x` or higher **in major 7**, as a pinned `7.x.y`, `^7.x.y`, or `~7.x.y` dependency (version string validation, **not** a proven all-minor runtime support matrix).
 - Exactly one JSON configuration source: `forge.config.json` **or** `package.json#config.forge`.
 - A `packagerConfig` object with `asar:false` or no `asar` property. Preexisting `asar:true` or object is treated as already configured.
-- Plugins array that is plain JSON (when present). The tool will add or merge `@electron-forge/plugin-fuses` with `EnableEmbeddedAsarIntegrityValidation` and `OnlyLoadAppFromAsar` set to true.
+- Plugins array that is plain JSON (when present). The project must already declare `@electron-forge/plugin-fuses` 7.4 or later. The tool adds or merges Forge's documented `{ name, config }` plugin object with Fuse v1 wire options `4` (`EnableEmbeddedAsarIntegrityValidation`) and `5` (`OnlyLoadAppFromAsar`) set to `true`; unrelated fuse choices are preserved.
 
 Refuses ambiguous configurations, any `forge.config.js/.cjs/.mjs/.ts`, unsupported CLI versions, duplicate JSON keys, symlinked or hard-linked manifests, and oversized manifests. A successful edit means **JSON settings changed**, not that the app was built, works, or resists reverse engineering.
 

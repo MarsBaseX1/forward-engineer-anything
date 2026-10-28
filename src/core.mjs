@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
-export const VERSION = '1.0.0';
+export const VERSION = '1.0.1';
 export const RULES = Object.freeze({
   FEA001: {title:'Source map shipped', severity:'high'},
   FEA002: {title:'Potential private key in release', severity:'critical'},
@@ -143,6 +143,7 @@ export function scanDirectory(rootInput, config, options={}) {
 }
 export function validateReport(report) {
   if (!report || report.formatVersion!==1 || report.profile!=='electron-resources' ||
+      typeof report.scannerVersion!=='string' || !report.scannerVersion ||
       !Array.isArray(report.findings) || !report.coverage || !Array.isArray(report.coverage.ruleIds) ||
       !Array.isArray(report.coverage.errors) || typeof report.coverage.complete!=='boolean' ||
       typeof report.inputDigest!=='string' || !['prepackage','developer-extracted'].includes(report.inputStage)) throw Error('Unsupported or incomplete report');
@@ -153,6 +154,7 @@ export function validateReport(report) {
 export function verifyReport(report, config, now=new Date()) {
   validateReport(report);validateConfig(config);
   const problems=[];
+  if (report.scannerVersion!==VERSION) problems.push('SCANNER_VERSION_MISMATCH');
   if (report.inputStage!==config.inputStage) problems.push('INPUT_STAGE_MISMATCH');
   if (!report.coverage.complete || report.coverage.errors.length) problems.push('INCOMPLETE_SCAN');
   for (const id of Object.keys(RULES)) if (!report.coverage.ruleIds.includes(id)) problems.push('RULE_COVERAGE_MISSING:'+id);
@@ -168,6 +170,8 @@ export function verifyReport(report, config, now=new Date()) {
 }
 export function compareReports(before, after) {
   validateReport(before);validateReport(after);
+  if (before.scannerVersion!==VERSION || after.scannerVersion!==VERSION || before.scannerVersion!==after.scannerVersion)
+    throw Error('Incompatible scanner version');
   if (!before.coverage.complete || !after.coverage.complete || before.coverage.errors.length || after.coverage.errors.length) throw Error('Cannot compare incomplete scans');
   if (before.inputStage!==after.inputStage || before.coverage.ruleIds.join(',')!==after.coverage.ruleIds.join(',')) throw Error('Incompatible scan coverage');
   const old=new Set(before.findings.map(f=>f.fingerprint)), current=new Set(after.findings.map(f=>f.fingerprint));

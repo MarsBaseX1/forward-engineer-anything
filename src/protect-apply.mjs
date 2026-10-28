@@ -33,6 +33,9 @@ function checkForge(root){
   const forgeVersion=deps['@electron-forge/cli'];
   const v=typeof forgeVersion==='string'?/^[~^]?7\.(\d+)\.(\d+)(?:$|[-+][a-zA-Z0-9.-]+$)/.exec(forgeVersion):null;
   if(!v||Number(v[1])<4)throw Error('PROTECT_FORGE_VERSION_UNSUPPORTED');
+  const fusesPluginVersion=deps['@electron-forge/plugin-fuses'];
+  const fv=typeof fusesPluginVersion==='string'?/^[~^]?7\.(\d+)\.(\d+)(?:$|[-+][a-zA-Z0-9.-]+$)/.exec(fusesPluginVersion):null;
+  if(!fv||Number(fv[1])<4)throw Error('PROTECT_FUSES_PLUGIN_REQUIRED');
   if(['forge.config.js','forge.config.cjs','forge.config.mjs','forge.config.ts'].some(p=>fs.existsSync(path.join(root,p))))
     throw Error('PROTECT_EXECUTABLE_FORGE_CONFIG_UNSUPPORTED');
   const standalone=fs.existsSync(path.join(root,'forge.config.json'));
@@ -55,24 +58,29 @@ function checkForge(root){
     editedForge.packagerConfig.asar=true;
     changes.push({operation:'set',setting:'packagerConfig.asar',value:true});
   }
-  // Recommend and apply key Electron Fuses for ASAR integrity when the plugins array is plain JSON.
+  // Forge 7 JSON configuration accepts {name, config}; @electron/fuses v1
+  // addresses these two fuses by their stable wire indexes 4 and 5.
   const plugins=editedForge.plugins;
-  const recommendedFuses={EnableEmbeddedAsarIntegrityValidation:true,OnlyLoadAppFromAsar:true};
+  const recommendedFuses={'4':true,'5':true};
   let fusePluginIndex=-1;
   if(Array.isArray(plugins)){
-    fusePluginIndex=plugins.findIndex(p=>Array.isArray(p)&&p[0]==='@electron-forge/plugin-fuses');
+    if(plugins.some(p=>(Array.isArray(p)&&p[0]==='@electron-forge/plugin-fuses')||p==='@electron-forge/plugin-fuses'))
+      throw Error('PROTECT_FUSES_PLUGIN_CONFIG_UNSUPPORTED');
+    fusePluginIndex=plugins.findIndex(p=>plain(p)&&p.name==='@electron-forge/plugin-fuses');
+  } else if(plugins!==undefined) {
+    throw Error('PROTECT_PLUGINS_CONFIG_UNSUPPORTED');
   }
   if(fusePluginIndex===-1){
     editedForge.plugins??=[];
-    editedForge.plugins.push(['@electron-forge/plugin-fuses',{version:1,fuses:recommendedFuses}]);
+    editedForge.plugins.push({name:'@electron-forge/plugin-fuses',config:{version:'1',...recommendedFuses}});
     changes.push({operation:'add',setting:'plugins.@electron-forge/plugin-fuses',value:recommendedFuses});
   } else {
-    const existing=plugins[fusePluginIndex][1]||{};
-    const existingFuses=existing.fuses||{};
-    const updated={...existingFuses,...recommendedFuses};
-    if(JSON.stringify(existingFuses)!==JSON.stringify(updated)){
-      plugins[fusePluginIndex][1]={...existing,fuses:updated};
-      changes.push({operation:'merge',setting:'plugins.@electron-forge/plugin-fuses.fuses',value:recommendedFuses});
+    const existing=plugins[fusePluginIndex];
+    if(!plain(existing.config)||existing.config.version!=='1')throw Error('PROTECT_FUSES_PLUGIN_CONFIG_UNSUPPORTED');
+    const updated={...existing.config,...recommendedFuses};
+    if(JSON.stringify(existing.config)!==JSON.stringify(updated)){
+      plugins[fusePluginIndex]={...existing,config:updated};
+      changes.push({operation:'merge',setting:'plugins.@electron-forge/plugin-fuses.config',value:recommendedFuses});
     }
   }
   const original=chosen.bytes.toString('utf8');

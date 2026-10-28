@@ -38,7 +38,7 @@ if (!npmCli || !fs.existsSync(npmCli)) {
     assert.equal(result.length, 1);
     const item = result[0];
     const included = new Set(item.files.map(f => f.path));
-    for (const required of ['src/cli.mjs','src/core.mjs','README.md','README.en.md','CHANGELOG.md','CONTRIBUTING.md','LICENSE','assets/fea-icon.png']) {
+    for (const required of ['src/cli.mjs','src/core.mjs','README.md','README.en.md','CHANGELOG.md','CONTRIBUTING.md','SECURITY.md','LICENSE','assets/fea-icon.png']) {
       assert(included.has(required), `Required distributable file missing: ${required}`);
     }
     for (const readme of ['README.md','README.en.md']) {
@@ -62,7 +62,9 @@ if (!npmCli || !fs.existsSync(npmCli)) {
     assert(fs.statSync(executable).isFile(), 'Installed package lacks the CLI entry point');
     const binaryDir = path.join(prefix, 'node_modules', '.bin');
     assert(fs.existsSync(path.join(binaryDir, process.platform === 'win32' ? 'fea.cmd' : 'fea')), 'npm CLI shim missing');
-    assert.match(runNode([executable, '--help']), /fea scan/);
+    const help=runNode([executable, '--help']);
+    assert.match(help, /fea scan/);
+    assert.match(help, new RegExp(`FEA ${meta.version.replaceAll('.', '\\.')}(?:\\s|$)`));
     const config = path.join(scratch, 'fea.json');
     runNode([executable, 'init', '--out', config]);
     const resources = path.join(scratch, 'resources');

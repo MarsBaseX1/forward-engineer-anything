@@ -20,9 +20,12 @@ export function packDemoAsar(input,output) {
   }}
   visit(files);
   const json=Buffer.from(JSON.stringify({files}),'utf8');
-  const aligned=(4+json.length+3)&~3;
-  const first=Buffer.alloc(8);first.writeUInt32LE(4,0);first.writeUInt32LE(aligned,4);
-  const header=Buffer.alloc(aligned);header.writeUInt32LE(json.length,0);json.copy(header,4);
+  const payloadLength=(4+json.length+3)&~3;
+  const header=Buffer.alloc(4+payloadLength);
+  header.writeUInt32LE(payloadLength,0);
+  header.writeUInt32LE(json.length,4);
+  json.copy(header,8);
+  const first=Buffer.alloc(8);first.writeUInt32LE(4,0);first.writeUInt32LE(header.length,4);
   fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,Buffer.concat([first,header,...data]));
   return output;
 }

@@ -33,7 +33,8 @@ test('independent release verification downloads and validates assets before pub
   assert.ok(!verifyJob.includes('actions/checkout@'), 'Do not place a write-capable checkout token in the package execution job');
   assert.ok(workflow.includes('needs: [download-release, verify]'));
   assert.ok(workflow.includes("needs.download-release.outputs.release_is_draft == 'true'"));
-  assert.ok(workflow.includes("github.event_name == 'push'"));
+  assert.ok(!workflow.includes("github.event_name == 'push'"), 'Release publication must require an explicit verification dispatch');
+  assert.ok(workflow.includes("github.event.inputs.publish_after_verify == 'true'"));
   assert.ok(workflow.includes('gh api --method PATCH'));
   assert.ok(workflow.includes('-F draft=false'));
 });
