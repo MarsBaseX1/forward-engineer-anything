@@ -1,6 +1,6 @@
 # Contributing to FEA
 
-FEA is a stable open-source protection engineering framework for Electron desktop applications (v1.0.0). Contributions are welcome for rules, synthetic fixtures, adapters, documentation, and tests.
+FEA is a stable open-source protection engineering framework for Electron desktop applications (v1.0.1). Contributions are welcome for rules, synthetic fixtures, adapters, documentation, and tests.
 
 Please read [ROADMAP.md](docs/ROADMAP.md), [ANTI-REA-HARDENING.md](docs/ANTI-REA-HARDENING.md), and [THREAT_MODEL.md](docs/THREAT_MODEL.md) before proposing larger changes.
 

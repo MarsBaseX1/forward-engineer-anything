@@ -66,11 +66,13 @@ export function scanAsar(input,config,options={}) {
     const first=readExact(fd,8,0);
     if(first.readUInt32LE(0)!==4)throw Error('ASAR_PICKLE_INVALID');
     const pickleSize=first.readUInt32LE(4);
-    if(pickleSize<8 || pickleSize>MAX_HEADER_BYTES || 8+pickleSize>stat.size)throw Error('ASAR_HEADER_SIZE_INVALID');
+    if(pickleSize<12 || pickleSize>MAX_HEADER_BYTES || 8+pickleSize>stat.size)throw Error('ASAR_HEADER_SIZE_INVALID');
     const header=readExact(fd,pickleSize,8);
-    const jsonLength=header.readUInt32LE(0);
-    if(jsonLength<2 || 4+jsonLength>pickleSize)throw Error('ASAR_JSON_LENGTH_INVALID');
-    const decoded=new TextDecoder('utf-8',{fatal:true}).decode(header.subarray(4,4+jsonLength));
+    const payloadLength=header.readUInt32LE(0);
+    if(payloadLength!==pickleSize-4 || payloadLength<8 || payloadLength%4!==0)throw Error('ASAR_HEADER_PICKLE_INVALID');
+    const jsonLength=header.readUInt32LE(4);
+    if(jsonLength<2 || 8+jsonLength>pickleSize)throw Error('ASAR_JSON_LENGTH_INVALID');
+    const decoded=new TextDecoder('utf-8',{fatal:true}).decode(header.subarray(8,8+jsonLength));
     const top=parseUniqueJson(decoded);
     if(!top || typeof top!=='object' || Array.isArray(top) || !top.files || typeof top.files!=='object'||Array.isArray(top.files))throw Error('ASAR_TREE_INVALID');
     const dataStart=8+pickleSize;

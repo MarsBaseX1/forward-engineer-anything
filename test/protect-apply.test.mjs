@@ -11,7 +11,8 @@ function fixture(t,standalone=false){
   const top=fs.mkdtempSync(path.join(os.tmpdir(),'fea-protect-v04-'));
   t.after(()=>fs.rmSync(top,{force:true,recursive:true}));
   const project=path.join(top,'project'),state=path.join(top,'state');fs.mkdirSync(project);
-  const pkg={name:'owned-fixture',private:true,devDependencies:{'@electron-forge/cli':'^7.4.0'},
+  const pkg={name:'owned-fixture',private:true,devDependencies:{
+      '@electron-forge/cli':'^7.4.0','@electron-forge/plugin-fuses':'^7.4.0'},
     config:standalone?undefined:{forge:{packagerConfig:{asar:false,icon:'kept'},plugins:[]}}};
   fs.writeFileSync(path.join(project,'package.json'),JSON.stringify(pkg,null,2)+'\n');
   if(standalone)fs.writeFileSync(path.join(project,'forge.config.json'),JSON.stringify({packagerConfig:{asar:false,icon:'kept'}},null,2)+'\n');
@@ -35,7 +36,8 @@ test('embedded Forge: apply and rollback restore identical bytes while preservin
   const updated=JSON.parse(fs.readFileSync(target,'utf8'));
   assert.equal(updated.config.forge.packagerConfig.asar,true);
   assert.equal(updated.config.forge.packagerConfig.icon,'kept');
-  assert.ok(updated.config.forge.plugins.some(p=>p[0]==='@electron-forge/plugin-fuses'));
+  const fuses=updated.config.forge.plugins.find(p=>p.name==='@electron-forge/plugin-fuses');
+  assert.deepEqual(fuses,{name:'@electron-forge/plugin-fuses',config:{version:'1','4':true,'5':true}});
   assert.equal(h(fs.readFileSync(target)),plan.toSha256);
   assert.equal(rollbackHardening(project,result.receipt).restored,true);
   assert.deepEqual(fs.readFileSync(target),original);
@@ -94,14 +96,30 @@ test('unsupported version and ambiguous sources fail closed',t=>{
   fs.writeFileSync(path.join(project,'forge.config.json'),'{}');
   assert.throws(()=>previewHardening(project),/AMBIGUOUS/);
 });
+test('missing Forge fuses plugin dependency fails before producing a plan',t=>{
+  const {project,target}=fixture(t);const obj=JSON.parse(fs.readFileSync(target));
+  delete obj.devDependencies['@electron-forge/plugin-fuses'];
+  fs.writeFileSync(target,JSON.stringify(obj));
+  assert.throws(()=>previewHardening(project),/FUSES_PLUGIN_REQUIRED/);
+});
 test('already fully configured ASAR and fuses yields no-op preview, refuse apply',t=>{
   const {project,state,target}=fixture(t);const obj=JSON.parse(fs.readFileSync(target));
   obj.config.forge.packagerConfig.asar=true;
-  obj.config.forge.plugins=[['@electron-forge/plugin-fuses',{version:1,fuses:{EnableEmbeddedAsarIntegrityValidation:true,OnlyLoadAppFromAsar:true}}]];
+  obj.config.forge.plugins=[{name:'@electron-forge/plugin-fuses',config:{version:'1','4':true,'5':true}}];
   fs.writeFileSync(target,JSON.stringify(obj));
   const plan=previewHardening(project);
   assert.equal(plan.changeRequired,false);
   assert.throws(()=>applyHardening(project,plan,state),/ALREADY_CONFIGURED/);
+});
+test('existing Forge fuses plugin keeps unrelated fuse choices while enabling integrity pair',t=>{
+  const {project,target}=fixture(t);const obj=JSON.parse(fs.readFileSync(target));
+  obj.config.forge.plugins=[{name:'@electron-forge/plugin-fuses',config:{version:'1','0':false,'4':false}}];
+  fs.writeFileSync(target,JSON.stringify(obj));
+  const plan=previewHardening(project);
+  assert.equal(plan.changeRequired,true);
+  applyHardening(project,plan,path.join(path.dirname(project),'state'));
+  const result=JSON.parse(fs.readFileSync(target));
+  assert.deepEqual(result.config.forge.plugins[0].config,{version:'1','0':false,'4':true,'5':true});
 });
 test('symlink config rejected; no edits to external content',t=>{
   const {project,top,target}=fixture(t);

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {DEFAULT_CONFIG,scanDirectory,verifyReport,compareReports,comparisonMarkdown,validateConfig} from '../src/core.mjs';
+import {DEFAULT_CONFIG,VERSION,scanDirectory,verifyReport,compareReports,comparisonMarkdown,validateConfig} from '../src/core.mjs';
 function fixture() {
   const root=fs.mkdtempSync(path.join(os.tmpdir(),'fea-test-'));
   const input=path.join(root,'release');fs.mkdirSync(input);
@@ -77,4 +77,15 @@ test('rejects mismatched stages and missing rule coverage',t=>{
   const broken=structuredClone(r);broken.coverage.ruleIds.pop();
   assert.equal(verifyReport(broken,DEFAULT_CONFIG).ok,false);
   assert.throws(()=>compareReports(broken,r),/Incompatible/);
+});
+test('verify and compare reject reports created by an incompatible scanner version',t=>{
+  const f=fixture();t.after(f.cleanup);f.put('main.js','ok');
+  const report=scanDirectory(f.input,DEFAULT_CONFIG);
+  assert.equal(report.scannerVersion,VERSION);
+  report.scannerVersion='0.4.4';
+  const result=verifyReport(report,DEFAULT_CONFIG);
+  assert.equal(result.ok,false);
+  assert(result.problems.includes('SCANNER_VERSION_MISMATCH'));
+  const current=scanDirectory(f.input,DEFAULT_CONFIG);
+  assert.throws(()=>compareReports(report,current),/scanner version/i);
 });

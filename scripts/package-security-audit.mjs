@@ -61,7 +61,7 @@ try {
   check('no-install-lifecycle-scripts', !['preinstall','install','postinstall','prepare'].some(key => Object.hasOwn(packedPkg.scripts ?? {}, key)), 'No npm install-time lifecycle scripts.');
   check('dependency-free-cli', Object.keys(packedPkg.dependencies ?? {}).length === 0, 'Published CLI declares no runtime dependencies.');
   check('bin-entry-point', packedPkg.bin?.fea === './src/cli.mjs' && fs.existsSync(path.join(packageDir, 'src/cli.mjs')), 'CLI executable maps to a shipped entry point.');
-  const required = ['src/cli.mjs','src/core.mjs','README.md','README.en.md','CHANGELOG.md','CONTRIBUTING.md','LICENSE','assets/fea-icon.png'];
+  const required = ['src/cli.mjs','src/core.mjs','README.md','README.en.md','CHANGELOG.md','CONTRIBUTING.md','SECURITY.md','LICENSE','assets/fea-icon.png'];
   check('required-files-present', required.every(file => normalized.includes(file)), 'Required user-facing and runtime files are included.');
   const forbidden = normalized.filter(file => /(^|\/)(?:test|tests|demo|\.github|node_modules|tmp|coverage)(?:\/|$)/i.test(file) || /(?:\.pem|\.key|\.pfx|\.p12|\.map)$/i.test(file) || /(^|\/)\.env(?:\.|$)/i.test(file));
   check('no-private-or-build-files', forbidden.length === 0, forbidden.length ? 'Unexpected paths: ' + forbidden.slice(0, 12).join(', ') : 'No test, demo, credential, source-map, or build-only files detected.');

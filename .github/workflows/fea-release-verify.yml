@@ -1,16 +1,12 @@
 name: FEA independent release verification
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/fea-release-verify.yml'
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version to verify (for example 1.0.0)'
+        description: 'Release version to verify (for example 1.0.1)'
         required: true
-        default: '1.0.0'
+        default: '1.0.1'
         type: string
       publish_after_verify:
         description: 'Publish the draft only after every independent check passes'
@@ -39,7 +35,7 @@ jobs:
       release_is_draft: ${{ steps.release.outputs.release_is_draft }}
       source_sha: ${{ steps.release.outputs.source_sha }}
     env:
-      FEA_RELEASE_VERSION: ${{ github.event.inputs.version || '1.0.0' }}
+      FEA_RELEASE_VERSION: ${{ inputs.version }}
     steps:
       - name: Resolve the draft and pin its source commit
         id: release
@@ -142,7 +138,7 @@ jobs:
       contents: read
       attestations: read
     env:
-      FEA_RELEASE_VERSION: ${{ github.event.inputs.version || '1.0.0' }}
+      FEA_RELEASE_VERSION: ${{ inputs.version }}
       FEA_SOURCE_SHA: ${{ needs.download-release.outputs.source_sha }}
     steps:
       - uses: actions/setup-node@v6
@@ -236,7 +232,7 @@ jobs:
           const manifestFiles = new Set(item.files.map(file => file.path));
           const required = [
             'src/cli.mjs', 'src/core.mjs', 'README.md', 'README.en.md',
-            'CHANGELOG.md', 'CONTRIBUTING.md', 'LICENSE', 'assets/fea-icon.png'
+            'CHANGELOG.md', 'CONTRIBUTING.md', 'SECURITY.md', 'LICENSE', 'assets/fea-icon.png'
           ];
           for (const file of required) assert(manifestFiles.has(file), 'Required package file missing: ' + file);
           assert(manifestFiles.size < 140, 'Unexpectedly large npm package');
@@ -297,15 +293,15 @@ jobs:
     needs: [download-release, verify]
     if: >-
       needs.download-release.outputs.release_is_draft == 'true' &&
-      (github.event_name == 'push' ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.publish_after_verify == 'true'))
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.publish_after_verify == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: write
     env:
       GH_TOKEN: ${{ github.token }}
-      FEA_RELEASE_VERSION: ${{ github.event.inputs.version || '1.0.0' }}
+      FEA_RELEASE_VERSION: ${{ inputs.version }}
       FEA_RELEASE_ID: ${{ needs.download-release.outputs.release_id }}
       FEA_SOURCE_SHA: ${{ needs.download-release.outputs.source_sha }}
     steps:

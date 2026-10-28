@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.1 — 2026-10-22
+## 1.0.1 — 2026-10-28
 
 ### Release integrity and supply-chain audit
 
@@ -10,6 +10,14 @@
 - Extend GitHub release assets with the SBOM and audit report; checksum and attest all five assets.
 - Independently verify the SBOM and audit digest against the downloaded tarball before the release can be promoted.
 - Document Windows Authenticode, macOS Developer ID/notarization, and registry publication as separate release gates.
+
+### Compatibility and correctness fixes
+
+- Parse the standard Chromium Pickle header used by Electron ASAR archives; owned fixtures now emit the same header layout.
+- Generate the supported Forge 7.4+ Fuses plugin `{ name, config }` object using Fuse v1 wire indexes while preserving unrelated fuse choices.
+- Reject Protect previews when `@electron-forge/plugin-fuses` 7.4 or later is not declared.
+- Keep `package.json`, the CLI banner and report `scannerVersion` aligned at `1.0.1`; reject verification or comparison of reports from an incompatible scanner version.
+- Add complete npm metadata, a security policy and generated-output ignore rules; exclude internal historical design notes from the installable package.
 
 **Boundaries:** These checks improve release traceability but are not a malware verdict, a complete vulnerability audit, a security certification, Windows Authenticode signing, or macOS notarization.
 

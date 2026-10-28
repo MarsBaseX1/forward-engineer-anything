@@ -1,6 +1,6 @@
-# FEA v1.0.0 — Implementation Guide
+# FEA v1.0.1 — Implementation Guide
 
-**Stable release (2026-10-21).** FEA is a protection engineering framework for Electron desktop applications. It raises the cost of REA-style reverse engineering and tampering through pre-release auditing, CI gating, controlled hardening, and comparison. It does **not** claim software is un-reverse-engineerable.
+**Stable release (2026-10-28).** FEA is a protection engineering framework for Electron desktop applications. It raises the cost of REA-style reverse engineering and tampering through pre-release auditing, CI gating, controlled hardening, and comparison. It does **not** claim software is un-reverse-engineerable.
 
 See [CHANGELOG.md](CHANGELOG.md), [ANTI-REA-HARDENING.md](docs/ANTI-REA-HARDENING.md), and [ROADMAP.md](docs/ROADMAP.md).
 

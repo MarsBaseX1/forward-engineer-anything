@@ -1,6 +1,6 @@
-# FEA — Production acceptance criteria (v1.0.0)
+# FEA — Production acceptance criteria (v1.0.1)
 
-FEA v1.0.0 is a stable dependency-free Node.js CLI for Electron release-resource inspection, policy gating, and controlled hardening. No single security tool can prevent all reverse engineering. Treat production use as a reproducible release decision with documented boundaries.
+FEA v1.0.1 is a stable dependency-free Node.js CLI for Electron release-resource inspection, policy gating, and controlled hardening. No single security tool can prevent all reverse engineering. Treat production use as a reproducible release decision with documented boundaries.
 
 ## Install / uninstall
 
@@ -23,7 +23,7 @@ All criteria below must be explicitly satisfied before relying on FEA for a prod
 4. **Actual installer content:** Unsupported formats are **Unassessed**.
 5. **Evidence integrity:** Release-resource scans must come from the protected build job and be bound to a verified, immutable artifact digest.
 
-## Current validation status (v1.0.0)
+## Current validation status (v1.0.1)
 
 | Item | Status |
 | --- | --- |

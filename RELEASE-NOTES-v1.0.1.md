@@ -2,7 +2,7 @@
 
 **Build forward. Verify what you ship.**
 
-FEA v1.0.1 strengthens the integrity and traceability of the CLI distribution. The scanner's core behavior remains compatible; this update focuses on how the release package is inspected, described, checksummed, and independently verified.
+FEA v1.0.1 strengthens the integrity and traceability of the CLI distribution and fixes release-blocking compatibility defects in the Electron ASAR and Forge Fuses paths.
 
 ## What's new
 
@@ -11,6 +11,10 @@ FEA v1.0.1 strengthens the integrity and traceability of the CLI distribution. T
 - **Digest-bound audit report:** produces `package-security-audit.json` with a PASS/FAIL result and the SHA-256 of the audited tarball.
 - **Five release assets:** the tarball, npm pack manifest, SPDX SBOM, package audit report, and SHA-256 checksum list.
 - **Independent verification:** checks checksums, npm package metadata and file manifest, build-provenance attestations, SBOM/audit digest binding, and a clean consumer install with CLI smoke tests.
+- **Standard Electron ASAR compatibility:** parses Chromium Pickle headers emitted by standard Electron tooling.
+- **Valid Forge Fuses automation:** emits Forge 7.4+ `{ name, config }` plugin configuration, preserves unrelated fuse choices and fails closed when the plugin dependency is missing.
+- **Version-bound reports:** keeps the CLI/package/scanner version aligned and rejects policy verification or comparison across incompatible scanner versions.
+- **Security reporting:** adds a public security policy and complete npm repository metadata.
 
 ## Download assets
 

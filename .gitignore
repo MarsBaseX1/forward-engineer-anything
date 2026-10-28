@@ -2,6 +2,7 @@
 .fea/
 tmp/
 output/
+demo/generated/
 
 # Local credentials
 .env

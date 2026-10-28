@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {VERSION} from '../src/core.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const packageInfo = JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
 const src = fs.readFileSync(path.join(root,'scripts','distribution-smoke.mjs'),'utf8');
@@ -10,15 +11,23 @@ const cli = fs.readFileSync(path.join(root,'src','cli.mjs'),'utf8');
 const workflow = fs.readFileSync(path.join(root,'.github','workflows','fea-distribution.yml'),'utf8');
 const releaseWorkflow = fs.readFileSync(path.join(root,'.github','workflows','fea-release-package.yml'),'utf8');
 
-test('release candidate has a public installable CLI with an explicit content allowlist',()=>{
+test('v1.0.1 has consistent public package metadata and an explicit content allowlist',()=>{
   assert.equal(packageInfo.private,false);
   assert.equal(packageInfo.bin.fea,'./src/cli.mjs');
-  assert.match(packageInfo.version,/^\d+\.\d+\.\d+(-rc\.\d+)?$/);
+  assert.equal(packageInfo.version,'1.0.1');
+  assert.equal(VERSION,packageInfo.version);
+  assert.match(packageInfo.description,/Electron/i);
+  assert.equal(packageInfo.repository.url,'git+https://github.com/MarsBaseX1/forward-engineer-anything.git');
+  assert.equal(packageInfo.homepage,'https://github.com/MarsBaseX1/forward-engineer-anything#readme');
+  assert.equal(packageInfo.bugs.url,'https://github.com/MarsBaseX1/forward-engineer-anything/issues');
   assert(Array.isArray(packageInfo.files));
   assert(packageInfo.files.includes('src/'));
+  assert(packageInfo.files.includes('docs/*.md'));
+  assert(!packageInfo.files.includes('docs/'));
   assert(packageInfo.files.includes('assets/fea-icon.png'));
   assert(packageInfo.files.includes('CHANGELOG.md'));
   assert(packageInfo.files.includes('CONTRIBUTING.md'));
+  assert(packageInfo.files.includes('SECURITY.md'));
   for(const excluded of ['demo/','test/','.github/'])assert(!packageInfo.files.includes(excluded));
   assert.deepEqual(packageInfo.dependencies??{},{});
 });
