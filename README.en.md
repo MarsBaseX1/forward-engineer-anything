@@ -9,12 +9,12 @@
   [![CI](https://github.com/MarsBaseX1/forward-engineer-anything/actions/workflows/fea-security.yml/badge.svg)](https://github.com/MarsBaseX1/forward-engineer-anything/actions/workflows/fea-security.yml)
   [![License](https://img.shields.io/badge/license-Apache--2.0-2dbfa4)](LICENSE)
   ![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A5%2020-294754)
-  ![Stage](https://img.shields.io/badge/stage-release--candidate-2d8f86)
+  ![Release](https://img.shields.io/badge/release-v0.4.5-2d8f86)
 
   **[简体中文](README.md) · [Quick start](#quick-start) · [Reproducible data](#reproducible-demo-data) · [Security limits](#what-fea-does-not-promise) · [Contributing](CONTRIBUTING.md)**
 </div>
 
-> **v0.4.5 production-readiness:** FEA is transitioning to a verifiable distributable CLI. Run `npm test && npm run distribution:smoke` to package, install offline and execute the CLI smoke test. See the [production release acceptance criteria](docs/PRODUCTION-READINESS.md). **v1.0.0 has not been released; unsupported installer parsing, real-world signer-positive tests and AI attack benchmarks must remain explicitly unassessed.**
+> **v0.4.5 stable release:** Read-only Electron resource-directory / ASAR auditing, sanitized reports, policy gates and offline CLI installation are the supported stable scope. Run `npm test && npm run distribution:smoke` to reproduce the core acceptance checks. Protect, Arena and publisher verification remain experimental; installer payload auditing, real commercial signer-positive validation and AI reverse-engineering outcomes remain unassessed. See the [release scope and evidence](docs/PRODUCTION-READINESS.md).
 
 
 > **FEA (Forward Engineer Anything)** is an open-source protection engineering framework for desktop app authors. It helps teams identify unnecessarily exposed Electron assets, enforce reproducible release checks in CI, plan hardening, and compare observed findings before and after build improvements. **The goal is to raise the cost of REA-style AI-assisted reverse engineering and tampering—not to promise that code cannot be reverse engineered.**

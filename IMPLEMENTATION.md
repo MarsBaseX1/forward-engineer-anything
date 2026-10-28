@@ -1,3 +1,7 @@
+# FEA v0.4.5 — stable release-resource audit core
+
+The dependency-free `fea` CLI now has a stable release-resource audit surface for Electron desktop applications: resource-directory and standard ASAR scans, fail-closed policy verification, sanitized JSON/SARIF output, deterministic comparisons, and an offline-install acceptance test. The automation, signing, native-package, release-audit, MCP, authorization, and Arena commands below remain explicitly experimental. FEA reduces avoidable release exposure; it does not make software impossible to reverse engineer and is not a security certification.
+
 # v0.4.4 — Unified Release Audit (experimental)
 
 A bounded, read-only format recognizer and a consolidated three-state report have been added. Run `npm run release:audit -- <artifact.exe|msi|dmg|pkg> --out <report-folder>` and consult [the implementation guide](docs/RELEASE-AUDIT.md). No installer payload unpacking, commercial signing certificate or independent attestation has been included. `npm run release:audit-demo` covers negative unsigned/tampered outcomes.

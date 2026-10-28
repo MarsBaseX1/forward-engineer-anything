@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.4.5 — 2026-10-28
+
+### Stable scope
+
+- Publish the dependency-free `fea` CLI for bounded Electron resource-directory and standard ASAR inspection, sanitized JSON/SARIF output, deterministic comparison and policy gates.
+- Verify the npm tarball allowlist, offline installation, CLI shim, scan and policy gate on Windows, macOS and Linux CI.
+
+### Fixed
+
+- Parse the standard Chromium Pickle header used by Electron ASAR archives; owned fixtures now emit the same header layout.
+- Generate Forge 7.4+ Fuses plugin configuration with the supported `{ name, config }` object and Fuse v1 wire indexes while preserving unrelated fuse choices.
+- Reject Protect previews when the required `@electron-forge/plugin-fuses` dependency is absent or unsupported.
+- Reject policy verification of reports created by a different FEA scanner version.
+
+### Boundaries
+
+- Protect, Arena, native publisher verification and unified release audit remain experimental.
+- MSI / DMG / PKG payload inspection, positive validation with commercial signing identities and real AI reverse-engineering resistance remain unassessed.
+- This release does not claim that software is impossible to inspect, modify or reimplement.
+
 ## 0.4.2-alpha.1 — 2026-10-21
 
 ### Added

@@ -1,8 +1,8 @@
 # Contributing to FEA
 
-FEA is currently a design-stage project. There is no released CLI or protection runtime. Contributions should keep planned capabilities clearly separate from implemented and verified behavior.
+FEA v0.4.5 ships a stable, dependency-free resource-audit CLI. Protect, Arena, native publisher checks and other features explicitly labeled experimental retain narrower evidence. Contributions must keep stable, experimental and planned behavior clearly separated.
 
-Useful first contributions include reviewing the threat model, refining the v0.1 resource rules, proposing synthetic positive and negative fixtures, and documenting supported Windows / macOS build layouts. Read the [architecture design](docs/superpowers/specs/2026-10-21-fea-design.md) and [roadmap](docs/ROADMAP.md) before proposing a new subsystem.
+Useful contributions include adversarial fixtures for supported Electron inputs, rule-quality improvements, cross-platform failure cases and clearer build-layout documentation. Read the [stable release scope](docs/PRODUCTION-READINESS.md), [threat model](docs/THREAT_MODEL.md) and [roadmap](docs/ROADMAP.md) before proposing a new subsystem.
 
 Open an issue to explain the user problem, target format, expected evidence, limitations, and acceptance criteria. Pull requests should describe what changed and how it was checked. Documentation-only changes need link and consistency checks; executable changes need tests relevant to their behavior.
 

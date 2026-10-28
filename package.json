@@ -1,6 +1,17 @@
 {
   "name": "@marsbasex/fea",
-  "version": "0.4.5-rc.1",
+  "version": "0.4.5",
+  "description": "Release-resource auditing and policy gates for Electron desktop applications.",
+  "author": "MarsBaseX1",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MarsBaseX1/forward-engineer-anything.git"
+  },
+  "homepage": "https://github.com/MarsBaseX1/forward-engineer-anything#readme",
+  "bugs": {
+    "url": "https://github.com/MarsBaseX1/forward-engineer-anything/issues"
+  },
+  "keywords": ["electron", "security", "release", "sarif", "reverse-engineering"],
   "private": false,
   "type": "module",
   "bin": {
@@ -33,10 +44,12 @@
     "assets/fea-icon.png",
     "assets/fea-hero.svg",
     "assets/fea-demo-exposure.svg",
-    "docs/",
+    "docs/*.md",
     "README.md",
     "README.en.md",
     "IMPLEMENTATION.md",
+    "CHANGELOG.md",
+    "SECURITY.md",
     "LICENSE"
   ]
 }
